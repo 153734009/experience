@@ -574,6 +574,7 @@ function frequent_ip_2_addr($ip) {
 /**
   +---------------------------------------------------------------+
  * 14. php汉字转拼音
+ * frequent_pinyin($str,$code)
  * 如果出来的拼音不对，请检查第二个参数$code的设置
   +---------------------------------------------------------------+	
  *  parameters 
@@ -714,100 +715,32 @@ function frequent_get_file_info($path){
   +---------------------------------------------------------------+
  */
 
-/**
-  +---------------------------------------------------------------+
- * 15. 压缩文件  --待整理
- * frequent_zip($path,$savedir)
-  +---------------------------------------------------------------+
- * @param string $path		需要压缩的文件[夹]路径
- * @param string $savedir	压缩文件所保存的目录
-  +---------------------------------------------------------------+
- * @return array		zip文件路径
-  +---------------------------------------------------------------+
- */
-function frequent_zip($path,$savedir) {
-    $path=preg_replace('/\/$/', '', $path);
-    preg_match('/\/([\d\D][^\/]*)$/', $path, $matches, PREG_OFFSET_CAPTURE);
-    $filename=$matches[1][0].".zip";
-    set_time_limit(0);
-    $zip = new ZipArchive();
-    $zip->open($savedir.'/'.$filename,ZIPARCHIVE::OVERWRITE);
-    if (is_file($path)) {
-        $path=preg_replace('/\/\//', '/', $path);
-        $base_dir=preg_replace('/\/[\d\D][^\/]*$/', '/', $path);
-        $base_dir=addcslashes($base_dir, '/:');
-        $localname=preg_replace('/'.$base_dir.'/', '', $path);
-        $zip->addFile($path,$localname);
-        $zip->close();
-        return $filename;
-    }elseif (is_dir($path)) {
-        $path=preg_replace('/\/[\d\D][^\/]*$/', '', $path);
-        $base_dir=$path.'/';//基目录
-        $base_dir=addcslashes($base_dir, '/:');
-    }
-    $path=preg_replace('/\/\//', '/', $path);
-    function addItem($path,&$zip,&$base_dir){
-        $handle = opendir($path);
-        while (false !== ($file = readdir($handle))) {
-            if (($file!='.')&&($file!='..')){
-                $ipath=$path.'/'.$file;
-                if (is_file($ipath)){//条目是文件
-                    $localname=preg_replace('/'.$base_dir.'/', '', $ipath);
-                    var_dump($localname);
-                    $zip->addFile($ipath,$localname);
-                } else if (is_dir($ipath)){
-                    addItem($ipath,$zip,$base_dir);
-                    $localname=preg_replace('/'.$base_dir.'/', '', $ipath);
-                    var_dump($localname);
-                    $zip->addEmptyDir($localname);
-                }
-            }
-        }
-    }
-    addItem($path,$zip,$base_dir);
-    $zip->close();
-    return $filename;
-}
 
 /**
-  +---------------------------------------------------------------+
- * 16. 压缩文件
- * frequent_ezip($zip,$hedef)
-  +---------------------------------------------------------------+
- * @param string $zip		压缩包路径
- * @param string $hedef		解压到的路径
-  +---------------------------------------------------------------+
+ +----------------------------------------------------------------+
+ * 正则
+ *
+ * 	:%s/\(\w\+\), \(\w\+\)/\2 \1/   将 Doe, John 修改为 John Doe
+ * 	preg_match("/\bweb\b/i", "PHP is the web scripting language of choice.")
+ * 	模式中的\b标记一个单词边界，所以只有独立的单词"web"会被匹配，而不会匹配单词的部分内容比如"webbing" 或 "cobweb" 
+ * 	/(\w|\.)*$/	分支匹配，该表达式能匹配 结尾处的所有\w或者.号
+ * 
+ +----------------------------------------------------------------+
  */
-function ezip($zip, $hedef = ''){
-    $dirname=preg_replace('/.zip/', '', $zip);
-    $root = $_SERVER['DOCUMENT_ROOT'].'/zip/';
-    $zip = zip_open($root . $zip);
-    @mkdir($root . $hedef . $dirname.'/'.$zip_dosya);
-    while($zip_icerik = zip_read($zip)){
-        $zip_dosya = zip_entry_name($zip_icerik);
-        if(strpos($zip_dosya, '.')){
-            $hedef_yol = $root . $hedef . $dirname.'/'.$zip_dosya;
-            @touch($hedef_yol);
-            $yeni_dosya = @fopen($hedef_yol, 'w+');
-            @fwrite($yeni_dosya, zip_entry_read($zip_icerik));
-            @fclose($yeni_dosya); 
-        }else{
-            @mkdir($root . $hedef . $dirname.'/'.$zip_dosya);
-        };
-    };
-}
 
-/
 /**
   +---------------------------------------------------------------+
   * 普及常识
-  * & 函数引用（一般用于递归）
-  * @ 错误控制运算符（尽量不用）
-  * file_get_contents(img_path);读得二进制数据
-  * :%s/\(\w\+\), \(\w\+\)/\2 \1/   将 Doe, John 修改为 John Doe
-  * 替换部分匹配换行的是 \r 不是 \n，和查找不一样
-  * header("Content-type: text/html; charset=utf-8");
-  * 
+  *
+  * 	& 函数引用（一般用于递归）
+  * 	@ 错误控制运算符（尽量不用）
+  * 	file_get_contents(img_path);读得二进制数据
+  * 	header("Content-type: text/html; charset=utf-8");
+  * 	constant()			返回一个常量的值。
+  * 	get_browser()		返回用户浏览器的性能。
+  * 	highlight_file()		对文件进行语法高亮显示。
+  * 	php_strip_whitespace()	返回已删除 PHP 注释以及空白字符的源代码文件。
+  *
   +---------------------------------------------------------------+
  */
 
@@ -828,7 +761,8 @@ function ezip($zip, $hedef = ''){
 	13. 纯真ip地址---------------------------------------------------------------------- 427
 	14. php汉字转拼音------------------------------------------------------------------- 576
 	15. eval 字符转任意----------------------------------------------------------------- 648
-	16. 解压缩-------------------------------------------------------------------------- 699
+	xx. 压缩/解压缩（见Class.zip.php）-------------------------------------------------- 000
+		https://github.com/153734009/experience
 	17. 压缩文件（打包下载）------------------------------------------------------------ 795
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126
