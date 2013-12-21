@@ -190,6 +190,22 @@ function frequent_shrink_image(wrapClass,newWidth,imgClass){
 }
 //document.onreadystatechange = frequent_shrink_image();
 
+/**
+  +---------------------------------------------------------------+
+ * 6. 正则匹配全中文
+  +---------------------------------------------------------------+	
+ *  parameters str
+  +---------------------------------------------------------------+	
+  | @return boole
+  +---------------------------------------------------------------+
+ */
+function frequent_hanzi_test(str){
+	if(/^[\u4e00-\u9fa5]+$/.test(str)){
+		return true;
+	}else{
+		return false;
+	}
+}
 
 /**
   +---------------------------------------------------------------+

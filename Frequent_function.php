@@ -714,16 +714,120 @@ function frequent_get_file_info($path){
   |		再 eval();
   +---------------------------------------------------------------+
  */
+/**
+  +---------------------------------------------------------------+
+ * 17 数组,json,字符 
+ +---------------------------------------------------------------+
+ |	SON(JavaScript Object Notation) 是一种轻量级的数据交换格式。
+ |	其实就是字符。
+ |	具有约定的格式： json string 格式字符串
+ +---------------------------------------------------------------+
+ */
+$frequent_test_str = '[{"region":{"id":"440000","name":"广东省","pinyin":"guang dong sheng","parent_id":"1"}},{"region":{"id":"440100","name":"广州市","pinyin":"guang zhou shi","parent_id":"440000"}}]';
+$frequent_test_arr = json_decode($frequent_test_str);
+	//最简的json_decode返回 stdclass object,即object对象;请使用 json_decode($frequent_test_str,ture);
+$frequent_test_arr = json_decode($frequent_test_str,true);
+$frequent_test_str = json_encode($frequent_test_arr);
+	//如果有utf-8中文，将会被 unicode编码成 \u5929; 使用一下正则替换回最初的 $frequent_test_arr。
+$frequent_test_str = preg_replace_callback("#\\\u([\w]{4})#",create_function('$matches', 'return frequent_unicode_decode($matches[0]);'),$frequent_test_str);
+	//匹配的结果是数组 Array(0=>'\u5e7f',1=>'5e7f')
+function frequent_unicode_decode_json($str){
+	function conv($arr){
+		$code_1 = base_convert(substr($arr[0],2,2),16,10);
+		$code_2 = base_convert(substr($arr[0], 4), 16, 10);
+		$c = chr($code_1).chr($code_2);
+		$c = iconv('UCS-2','UTF-8',$c);
+		return $c;
+	}
+	$str = preg_replace_callback("/\\\u([\w]{4})/",conv,$str);
+	return $str;
+}
 
+/**
+  +---------------------------------------------------------------+
+ * 18. utf8编码字符串截取
+ * utf_substr($str,$len,$nextstr="...");
+  +---------------------------------------------------------------+	
+ *  parameters 
+ * @param string	$str 需截取的字符串
+ * @param integer 	$len 截取长度，中文2为一字，英文1为一字母 
+ * @param string  	$nextstr 截取后需附加的字符串，默认为“...”
+  +---------------------------------------------------------------+	
+ * @return string
+  +---------------------------------------------------------------+
+ */
+	
+function frequent_utf_substr($str,$len,$nextstr="..."){
+	for($i=0;$i<$len;$i++){
+		$temp_str=substr($str,0,1);
+		if(ord($temp_str) > 127){
+			$i++;
+			if($i<$len){
+				$new_str[]=substr($str,0,3);
+				$str=substr($str,3);
+			}
+		}else{
+			$new_str[]=substr($str,0,1);
+			$str=substr($str,1);
+		}
+	}
+	$out=join($new_str);
+	if($len>=strlen($out)){
+		return $out;
+	}else{
+		return $out.$next;
+	}
+}
+/**
+  +---------------------------------------------------------------+
+ * 19. 正则匹配全中文
+  +---------------------------------------------------------------+	
+ *  parameters string
+  +---------------------------------------------------------------+	
+  | @return boole
+  | u (PCRE_UTF8)
+  | 此修正符启用了一个 PCRE 中与 Perl 不兼容的额外功能。模式字符串被当成 UTF-8。
+  | 本修正符在 Unix 下自 PHP 4.1.0 起可用，在 win32 下自 PHP 4.2.3 起可用。
+  +---------------------------------------------------------------+
+ */
+function frequent_hanzi_test($str){
+	if(preg_match("/^[\x{4e00}-\x{9fa5}]+$/u",$str)){
+		return true;
+	}else{
+		return false;
+	}
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 20. 模拟页面浏览
+ * frequent_cur_post($url,$json)
+  +---------------------------------------------------------------+	
+ *  parameters string $url	目标页面
+ *  parameters string $json	传递的参数
+  +---------------------------------------------------------------+	
+  | @return boole
+  +---------------------------------------------------------------+	
+
+ */
+function frequent_cur_post($url,$json){
+	$ch = curl_init();  
+	curl_setopt($ch, CURLOPT_URL, $url);  
+	curl_setopt($ch, CURLOPT_POST, 1);  
+	curl_setopt($ch, CURLOPT_POSTFIELDS, urlencode($json));  
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);//将返回值存入变量，等待调用
+	curl_exec($ch);  
+	curl_close($ch);
+}    
 
 /**
  +----------------------------------------------------------------+
  * 正则
- *
- * 	:%s/\(\w\+\), \(\w\+\)/\2 \1/   将 Doe, John 修改为 John Doe
- * 	preg_match("/\bweb\b/i", "PHP is the web scripting language of choice.")
- * 	模式中的\b标记一个单词边界，所以只有独立的单词"web"会被匹配，而不会匹配单词的部分内容比如"webbing" 或 "cobweb" 
  * 	/(\w|\.)*$/	分支匹配，该表达式能匹配 结尾处的所有\w或者.号
+ * 	1.分组后向引用：	preg_replace('/(\w+), (\w+)/',"$2, $1",'Doe, John')
+ *	2.单词边界：  		preg_match("/\bweb\b/i", "PHP is the web scripting language of choice.")
+ *	2.0宽断言：		preg_match('/(?<= filter=").*?(?=")/', 'cat="1" filter="status=1"', $matches); 
+ * 	4.匹配全中文		preg_match("/^[\x{4e00}-\x{9fa5}]+$/u",$str);
  * 
  +----------------------------------------------------------------+
  */
@@ -734,12 +838,13 @@ function frequent_get_file_info($path){
   *
   * 	& 函数引用（一般用于递归）
   * 	@ 错误控制运算符（尽量不用）
-  * 	file_get_contents(img_path);读得二进制数据
+  * 	file_get_contents(img_path);		读得二进制数据
   * 	header("Content-type: text/html; charset=utf-8");
-  * 	constant()			返回一个常量的值。
-  * 	get_browser()		返回用户浏览器的性能。
-  * 	highlight_file()		对文件进行语法高亮显示。
-  * 	php_strip_whitespace()	返回已删除 PHP 注释以及空白字符的源代码文件。
+  * 	constant()				返回一个常量的值。
+  * 	get_browser()				返回用户浏览器的性能。
+  * 	highlight_file()			对文件进行语法高亮显示。
+  * 	php_strip_whitespace()			返回已删除 PHP 注释以及空白字符的源代码文件。
+  * 	$_SERVER['REQUEST_URI'];		返回带参数的url
   *
   +---------------------------------------------------------------+
  */
@@ -763,8 +868,9 @@ function frequent_get_file_info($path){
 	15. eval 字符转任意----------------------------------------------------------------- 648
 	xx. 压缩/解压缩（见Class.zip.php）-------------------------------------------------- 000
 		https://github.com/153734009/experience
-	17. 压缩文件（打包下载）------------------------------------------------------------ 795
-	4.  无限分类------------------------------------------------------------------------ 126
+	16. eval()-------------------------------------------------------------------------- 698
+	17. 带中文unicode json解json-------------------------------------------------------- 719
+	18. utf8编码字符串截取-------------------------------------------------------------- 746
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126
