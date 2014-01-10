@@ -182,6 +182,19 @@ mysql_affected_rows();select ROW_COUNT()
 /*left join*/ select g.*,og.sales from (select `goods_id` as id,`goods_name` as name,`shop_price` as price,IF(`promote_price`=0,`shop_price`,`promote_price`) as special_price,TRUNCATE(IF(`promote_price`=0,`shop_price`,`promote_price`)/`shop_price`,2) as rebate, `goods_img` as filename,`brand_id`,`cat_id`,`is_real` as recommend,`is_new` as status_1,`is_hot` as status_2,IF(`goods_number`>0,0,1) as status_4,`click_count` as ob_1 from syk_goods where `is_on_sale`=1 and `is_alone_sale`=1 and `is_delete`=0 ) as g left join (select SUM(`goods_number`) as sales,`goods_id` as id from syk_order_goods group by `goods_id`) as og on g.id=og.id
 /*right join*/ select IFNULL(s.sales,0) as sales,g.* from (select SUM(`goods_number`) as sales,`goods_id` as id from syk_order_goods group by `goods_id`) as s right join (select `goods_id` as id,`goods_name` as name,`shop_price` as price,IF(`promote_price`=0,`shop_price`,`promote_price`) as special_price,TRUNCATE(IF(`promote_price`=0,`shop_price`,`promote_price`)/`shop_price`,2) as rebate, `goods_img` as filename,`brand_id`,`cat_id`,`is_real` as recommend,`is_new` as status_1,`is_hot` as status_2,IF(`goods_number`>0,0,1) as status_4,`click_count` as ob_1 from syk_goods where `is_on_sale`=1 and `is_alone_sale`=1 and `is_delete`=0 ) as g on g.id=s.id
 insert into syk_notification_details (`notification_id`,`device_token`,`device_type`,`user_id`,`user_name`,`timestamp`) select 10 as notification_id, `device_token`,`device_type`,`user_id`,`user_name`,now() as timestamp from syk_device_user where `user_id` in (select `user_id` from syk_collect_goods where `goods_id`='100' and `is_attention`=1)
+-----------------------------------------------
+CREATE DEFINER=`root`@`localhost` PROCEDURE `test_multi_sets`()
+   DETERMINISTIC
+begin
+       select user() as first_col;
+       select user() as first_col, now() as second_col;
+       select user() as first_col, now() as second_col, now() as third_col;
+       end
+--------------
+优化limit和offset 
+MySQL的limit工作原理就是先读取n条记录，然后抛弃前n条，读m条想要的，所以n越大，性能会越差。 
+优化前SQL: SELECT * FROM member ORDER BY last_active LIMIT 50,5 
+优化后SQL: SELECT * FROM member INNER JOIN (SELECT member_id FROM member ORDER BY last_active LIMIT 50, 5) USING (member_id) 
 /**
   +---------------------------------------------------------------+
   * 普及常识

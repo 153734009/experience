@@ -119,16 +119,11 @@ function frequent_endTime($startTime,$during,$mode=0,$holidy){
 function frequent_infinite_category($arr, $pid = 0) {
 	$tree = array();
 	foreach ($arr as $k => $v) {
-		if ($v['pid'] == $pid) {
-	$tree[] = $v;
-		}
+		if ($v['pid'] == $pid)		$tree[] = $v;
 	}
 	if (empty($tree))return null;
 	foreach ($tree as $k => $v) {
-		if(frequent_infinite_category($arr, $v['id'])){
-		//存在子类才添加
-			$tree[$k]['son'] = frequent_infinite_category($arr, $v['id']);
-		}
+		if(frequent_infinite_category($arr, $v['id']))		$tree[$k]['son'] = frequent_infinite_category($arr, $v['id']);
 	}
 	return $tree;
 }
@@ -746,7 +741,7 @@ function frequent_unicode_decode_json($str){
 /**
   +---------------------------------------------------------------+
  * 18. utf8编码字符串截取
- * utf_substr($str,$len,$nextstr="...");
+ * frequent_utf_substr($str,$len,$nextstr="...");
   +---------------------------------------------------------------+	
  *  parameters 
  * @param string	$str 需截取的字符串
@@ -755,9 +750,21 @@ function frequent_unicode_decode_json($str){
   +---------------------------------------------------------------+	
  * @return string
   +---------------------------------------------------------------+
+  |	mb_substr()/mb_strcut
+  |	mbstring扩展库的mb_substr截取就不会出现乱码
+  |    需要在php.ini在把php_mbstring.dll打开 
+  |	UTF-8就是以8位为单元对UCS进行编码。从UCS-2到UTF-8的编码方式如下：
+  |	UCS-2编码(16进制) UTF-8 字节流(二进制)
+  |	0000 – 007F 0xxxxxxx
+  |	0080 – 07FF 110xxxxx 10xxxxxx
+  |	0800 – FFFF 1110xxxx 10xxxxxx 10xxxxxx
+  |	例如“汉”字的Unicode编码是6C49。6C49在0800-FFFF之间，所以肯定要用3字节模板了：1110xxxx
+  |	10xxxxxx 10xxxxxx。将6C49写成二进制是：0110 110001 001001，
+  +---------------------------------------------------------------+
  */
 	
-function frequent_utf_substr($str,$len,$nextstr="..."){
+function frequent_utf_substr($str,$len,$next="..."){
+	$string=$str;
 	for($i=0;$i<$len;$i++){
 		$temp_str=substr($str,0,1);
 		if(ord($temp_str) > 127){
@@ -772,15 +779,51 @@ function frequent_utf_substr($str,$len,$nextstr="..."){
 		}
 	}
 	$out=join($new_str);
-	if($len>=strlen($out)){
+	if($len>=strlen($string)){
 		return $out;
 	}else{
 		return $out.$next;
-	}
+	}	
 }
+
 /**
   +---------------------------------------------------------------+
- * 19. 正则匹配全中文
+ * 19. 字符串截取，支持中文和其他编码
+ * frequent_utf_substr($str,$len,$nextstr="...");
+  +---------------------------------------------------------------+	
+ *  parameters 
+ * @param string	$str 需截取的字符串
+ * @param string 	$start 开始位置
+ * @param string 	$length 截取长度
+ * @param string 	$charset 编码格式
+ * @param string 	$suffix 截断显示字符
+  +---------------------------------------------------------------+	
+ * @return string
+ +---------------------------------------------------------------+
+ */
+function msubstr($str, $start=0, $length, $charset="utf-8", $suffix=true) {
+    if(function_exists("mb_substr"))
+        $slice = mb_substr($str, $start, $length, $charset);
+    elseif(function_exists('iconv_substr')) {
+        $slice = iconv_substr($str,$start,$length,$charset);
+        if(false === $slice) {
+            $slice = '';
+        }
+    }else{
+        $re['utf-8']   = "/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|[\xe0-\xef][\x80-\xbf]{2}|[\xf0-\xff][\x80-\xbf]{3}/";
+        $re['gb2312'] = "/[\x01-\x7f]|[\xb0-\xf7][\xa0-\xfe]/";
+        $re['gbk']    = "/[\x01-\x7f]|[\x81-\xfe][\x40-\xfe]/";
+        $re['big5']   = "/[\x01-\x7f]|[\x81-\xfe]([\x40-\x7e]|\xa1-\xfe])/";
+        preg_match_all($re[$charset], $str, $match);
+        $slice = join("",array_slice($match[0], $start, $length));
+    }
+    return $suffix ? $slice.'...' : $slice;
+}
+
+
+/**
+  +---------------------------------------------------------------+
+ * 20. 正则匹配全中文
   +---------------------------------------------------------------+	
  *  parameters string
   +---------------------------------------------------------------+	
@@ -800,7 +843,7 @@ function frequent_hanzi_test($str){
 
 /**
   +---------------------------------------------------------------+
- * 20. 模拟页面浏览
+ * 21. 模拟页面浏览
  * frequent_cur_post($url,$json)
   +---------------------------------------------------------------+	
  *  parameters string $url	目标页面
@@ -808,7 +851,6 @@ function frequent_hanzi_test($str){
   +---------------------------------------------------------------+	
   | @return boole
   +---------------------------------------------------------------+	
-
  */
 function frequent_cur_post($url,$json){
 	$ch = curl_init();  
@@ -818,7 +860,105 @@ function frequent_cur_post($url,$json){
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);//将返回值存入变量，等待调用
 	curl_exec($ch);  
 	curl_close($ch);
-}    
+}   
+
+/**
+  +---------------------------------------------------------------+
+ * 22. 产生随机字串
+ * 可用来自动生成密码 默认长度6位 字母和数字混合
+ * frequent_rand_string($url,$json)
+  +---------------------------------------------------------------+	
+ *  parameters string 	$len		长度
+ *  parameters integer 	$type		0 字母 1 数字 其它 混合
+ *  parameters string 	$addChars	额外字符
+  +---------------------------------------------------------------+	
+  | @return string
+  | 例：	$verify = rand_string(4,4);生成验证码
+  +---------------------------------------------------------------+	
+ */
+function frequent_rand_string($len=6,$type='',$addChars='') {
+    $str ='';
+    switch($type) {
+        case 0:
+            $chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.$addChars;
+            break;
+        case 1:
+            $chars= str_repeat('0123456789',3);
+            break;
+        case 2:
+            $chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.$addChars;
+            break;
+        case 3:
+            $chars='abcdefghijklmnopqrstuvwxyz'.$addChars;
+            break;
+        case 4:
+		require('array_pinyin.php'); 
+		$chars = HANZI;
+		$chars .= $addChars;
+		break;
+        default :
+            // 默认去掉了容易混淆的字符oOLl和数字01，要添加请使用addChars参数
+            $chars='ABCDEFGHIJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789'.$addChars;
+            break;
+    }
+    if($len>10 ) {//位数过长重复字符串一定次数
+        $chars= $type==1? str_repeat($chars,$len) : str_repeat($chars,5);
+    }
+    if($type!=4) {
+        $chars   =   str_shuffle($chars);
+        $str     =   substr($chars,0,$len);
+    }else{
+        // 中文随机字
+        for($i=0;$i<$len;$i++){
+          $str.= msubstr($chars, floor(mt_rand(0,mb_strlen($chars,'utf-8')-1)),1);
+        }
+    }
+    return $str;
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 23. 字节格式化
+ * 把字节数格式为 B K M G T 描述的大小
+ * frequent_byte_format($len,$dec=2)
+  +---------------------------------------------------------------+	
+ *  parameters integer 	$len	字节数
+ *  parameters integer	$dec	精确位数
+  +---------------------------------------------------------------+	
+  | @return string		如：9.55 GB
+  +---------------------------------------------------------------+	
+ */
+function byte_format($size, $dec=2) {
+	$a = array("B", "KB", "MB", "GB", "TB", "PB");
+	$pos = 0;
+	while ($size >= 1024) {
+		 $size /= 1024;
+		   $pos++;
+	}
+	return round($size,$dec)." ".$a[$pos];
+}
+/**
+  +---------------------------------------------------------------+
+ * 23. 正则是否UTF-8编码
+ * frequent_is_utf8($str)
+  +---------------------------------------------------------------+	
+ *  parameters string 	$string		要校验的字符
+  +---------------------------------------------------------------+	
+  | @return blooean		
+  +---------------------------------------------------------------+	
+ */
+function is_utf8($string) {
+    return preg_match('%^(?:
+         [\x09\x0A\x0D\x20-\x7E]            # ASCII
+       | [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte
+       |  \xE0[\xA0-\xBF][\x80-\xBF]        # excluding overlongs
+       | [\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}  # straight 3-byte
+       |  \xED[\x80-\x9F][\x80-\xBF]        # excluding surrogates
+       |  \xF0[\x90-\xBF][\x80-\xBF]{2}     # planes 1-3
+       | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15
+       |  \xF4[\x80-\x8F][\x80-\xBF]{2}     # plane 16
+    )*$%xs', $string);
+}
 
 /**
  +----------------------------------------------------------------+
@@ -845,7 +985,9 @@ function frequent_cur_post($url,$json){
   * 	highlight_file()			对文件进行语法高亮显示。
   * 	php_strip_whitespace()			返回已删除 PHP 注释以及空白字符的源代码文件。
   * 	$_SERVER['REQUEST_URI'];		返回带参数的url
-  *
+  *	ignore_user_abort(true);
+  *	serialize — 产生一个可存储的值的表示。	想要将已序列化的字符串变回 PHP 的值，可使用 unserialize()
+  *	eval('$return= $this->' . $string . '($back);');
   +---------------------------------------------------------------+
  */
 
@@ -871,11 +1013,11 @@ function frequent_cur_post($url,$json){
 	16. eval()-------------------------------------------------------------------------- 698
 	17. 带中文unicode json解json-------------------------------------------------------- 719
 	18. utf8编码字符串截取-------------------------------------------------------------- 746
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
+	19. 字符串截取---------------------------------------------------------------------- 826
+	20. 正则匹配全中文------------------------------------------------------------------ 126
+	21. 模拟页面浏览-------------------------------------------------------------------- 846
+	22. 随机字串------------------------------------------------------------------------ 867
+	23. 字节格式化---------------------------------------------------------------------- 921
+	24. 正则是否UTF-8编码--------------------------------------------------------------- 942
 	4.  无限分类------------------------------------------------------------------------ 126
  */

@@ -209,15 +209,147 @@ function frequent_hanzi_test(str){
 
 /**
   +---------------------------------------------------------------+
- * 普及常识
+ * 7. 浮点运算
+ * frequent_floatAdd[/Sub/Mul/Div](arg1,arg2);
+  +---------------------------------------------------------------+	
+ *  parameters float 	arg1
+ *  parameters float 	arg2
+  +---------------------------------------------------------------+	
+  | @return float
   +---------------------------------------------------------------+
- * 三元运算
-	形式1：(a==11) ? x=99:x=60;		输出99;条件为真的时候,执行第一个;为假执行第二个。
-	形式2：x= (false) ? 99:60;		输出60;条件为真的时候,执行第一个；为假执行第二个。
-	形式3: x = null || 18;			输出18;不存在执行第二个。
-	       x = "" || 18;			输出18;不存在执行第二个。
-	形式4: x = "x" || 18;			输出x;存在,执行第一个。
  */
+//浮点数加法运算
+function floatAdd(arg1,arg2){
+	var r1,r2,m;
+	try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0}
+	try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0}
+	m=Math.pow(10,Math.max(r1,r2));//pow(X,y)就是计算X的Y次方
+	return (arg1*m+arg2*m)/m
+}
+Number.prototype.floatAdd = function (arg){return floatAdd(arg, this);} 
+//浮点数减法运算
+function floatSub(arg1,arg2){
+	var r1,r2,m,n;
+	try{r1=arg1.toString().split(".")[1].length}catch(e){r1=0}
+	try{r2=arg2.toString().split(".")[1].length}catch(e){r2=0}
+	m=Math.pow(10,Math.max(r1,r2));
+	n=(r1>=r2)?r1:r2;//动态控制精度长度
+	return ((arg1*m-arg2*m)/m).toFixed(n);
+}
+Number.prototype.floatSub = function (arg){return floatSub(this, arg);}
+//浮点数乘法运算
+function floatMul(arg1,arg2){
+	var m=0,s1=arg1.toString(),s2=arg2.toString();
+	try{m+=s1.split(".")[1].length}catch(e){}
+	try{m+=s2.split(".")[1].length}catch(e){}
+	return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m)
+}
+Number.prototype.floatMul = function (arg){return floatMul(this, arg);}
+//浮点数除法运算
+function floatDiv(arg1,arg2){
+	var t1=0,t2=0,r1,r2;
+	try{t1=arg1.toString().split(".")[1].length}catch(e){}
+	try{t2=arg2.toString().split(".")[1].length}catch(e){}
+	with(Math){
+		r1=Number(arg1.toString().replace(".",""))
+		r2=Number(arg2.toString().replace(".",""))
+		return (r1/r2)*pow(10,t2-t1);
+	}
+}   
+Number.prototype.floatDiv = function (arg){return floatDiv(this, arg);}
+
+/**
+  +---------------------------------------------------------------+
+ * 8. js创建表单提交 
+ * frequent_submit(url,method,data)
+  +---------------------------------------------------------------+	
+ *  parameters string		url	
+ *  parameters string		method = post/get
+ *  parameters string(json)	data(一维)
+  +---------------------------------------------------------------+	
+  | @return float
+  +---------------------------------------------------------------+
+ */
+function frequent_submit(url,method="post",data){
+	    var	f= document.createElement('form')
+		f.action = url;
+		f.method = method;
+		document.body.appendChild(f);
+	eval ("var data = {"+data+"}");
+	for(var key in data){  
+	    if(typeof data[key]  === 'string'||'number'){
+		    var temp=document.createElement('input');
+			temp.type= 'hidden';
+			temp.name= key ;
+			temp.value= data[key];	
+			f.appendChild(temp);
+	    }
+	}
+	f.submit();
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 9. 获取DOM(ID/tagName/className)	对象化 
+ * frequent_dom()
+ * var d = new frequent_dom();		用法：d.id()/d.tagName()/d.className()
+  +---------------------------------------------------------------+	
+ *  function id
+ *  	parameters string	id	
+ *  function tagName
+ *  	parameters object	parentNode
+ *  	parameters string	element
+ *  function className
+ *  	parameters object	parentNode
+ *  	parameters string	className
+  +---------------------------------------------------------------+	
+  | @return Node/NodeList
+  +---------------------------------------------------------------+
+ */
+function frequent_dom(){
+	if (typeof frequent_dom._initialized == "undefined") {
+		frequent_dom.prototype.id = function (id){
+			return typeof id === "string" ? document.getElementById(id) : id;
+		}
+		frequent_dom.prototype.tagName = function (objParent,element){
+			alert('o_tag');
+			return (objParent || document).getElementsByTagName(element);
+		}
+		frequent_dom.prototype.className = function (objParent, strClass){
+			var noteListElement = frequent_tagName(objParent, '*');
+			var noteListClass = [];
+			var i = 0;
+			for(i=0;i<noteListElement.length;i++){
+				if(noteListElement[i].className == strClass)	noteListClass.push(noteListElement[i]);
+			}
+			return noteListClass;
+		}
+		frequent_dom._initialized = true;
+	}
+}
+
+/**
+ +----------------------------------------------------------------+
+ * 正则
+ * 	1.匹配全中文		/^[\u4e00-\u9fa5]+$/
+ * 
+ +----------------------------------------------------------------+
+ */
+
+/**
+  +---------------------------------------------------------------+
+  * 普及常识
+  *	
+  *	JSON.stringify(jsonObject)			query转换json对象为字符串
+  *	三元运算
+  *		形式1：(a==11) ? x=99:x=60;		输出99;条件为真的时候,执行第一个;为假执行第二个。
+  *		形式2：x= (false) ? 99:60;		输出60;条件为真的时候,执行第一个；为假执行第二个。
+  *		形式3: x = null || 18;			输出18;不存在执行第二个。
+  *		       x = "" || 18;			输出18;不存在执行第二个。
+  *		形式4: x = "x" || 18;			输出x;存在,执行第一个。
+  +---------------------------------------------------------------+
+ */
+
 
 /**
 目录
@@ -226,10 +358,11 @@ function frequent_hanzi_test(str){
 	3.  HTML编解码（函数）--------------------------------------------------------------  78
 	4.  var_dump(模仿php)--------------------------------------------------------------- 114
 	5.  缩小过大的图片------------------------------------------------------------------ 143
-	6.  unicode编码--------------------------------------------------------------------- 178
-	7.  unidode解码--------------------------------------------------------------------- 207
-	8.  生成略缩图---------------------------------------------------------------------- 244
-	9.  仿js alert()-------------------------------------------------------------------- 337
+	6.  正则匹配全中文------------------------------------------------------------------ 193
+	7.  浮点数运算---------------------------------------------------------------------- 210
+	8.  js创建表单提交------------------------------------------------------------------ 263
+	9.  获取DOM------------------------------------------------------------------------- 293
+	8.  -------------------------------------------------------------------------------- 244
 	10. 合并数组------------------------------------------------------------------------ 357
 	11. 字符与16进制互转---------------------------------------------------------------- 371
 	12. 获取客户端 ip------------------------------------------------------------------- 398
