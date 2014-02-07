@@ -1,12 +1,28 @@
 /*垂直居中*/
 input {line-height:normal;line-height:43px\9;}
 
-
-//手机判断屏幕应用不同样式
+/**
+  +---------------------------------------------------------------+
+ * 1. 手机判断屏幕应用不同样式
+  +---------------------------------------------------------------+
+*/
 <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
 @media screen and (max-width: 640px) {}						//如果屏幕宽度小雨320px的话
 <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1" />	
 										//可视区域width=device-width，初始化放大，最大放大
 <meta name="apple-mobile-web-app-capable" content="yes" />			//去除默认苹果菜单栏
 <meta name="apple-mobile-web-app-status-bar-style" content="black" />		//苹果菜单栏颜色
+
+/**
+  +---------------------------------------------------------------+
+ * 2. 设置打印CSS
+  +---------------------------------------------------------------+
+*/  
+<link rel="stylesheet" href="显示用CSS的地址" type="text/css" media="screen" /> 
+<link rel="stylesheet" href="打印用CSS的地址" type="text/css" media="print" /> 
+
+//使用ie7解释
+<meta http-equiv="X-UA-Compatible" content="IE=7" /> 
+//background简写	background:transparent none/url() repeat scroll 0% 0%
+
 

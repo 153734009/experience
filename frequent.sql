@@ -7,9 +7,7 @@
 	说明:1.不能像使用 一般的insert 有个 values;
 	     2.该语句也可以插入多条记录；
 例子： inser into qq_user(username,password) select username,password from qq_user where id=1;
-/**
- * 复制记录,同时修改某字段内容 
-*/
+-- 复制记录,同时修改某字段内容 
 格式： insert into table(column,column,...) select column,"xxxxxx",... from table where condition;
 	说明:1.固定值使用 "xxx";
 	     2.否则 请使用函数；
@@ -128,7 +126,31 @@ drop procedure add_notify_log
 
 /**
   +-----------------------------------------+
- * 9.使用REGEXP匹配中文(待完善)
+ * 9.优化limit offset
+  +-----------------------------------------+
+  | MySQL的limit工作原理就是先读取n条记录，然后抛弃前n条，读m条想要的，所以n越大，性能会越差。 
+  +-----------------------------------------+
+ */
+优化前SQL: 
+	SELECT * FROM member ORDER BY last_active LIMIT 50,5 
+优化后SQL: 
+	SELECT * FROM member INNER JOIN (SELECT member_id FROM member ORDER BY last_active LIMIT 50, 5) USING (member_id) 
+
+/**
+  +-----------------------------------------+
+ * 10.SCOPE_IDENTITY、IDENT_CURRENT 和 @@IDENTITY
+  +-----------------------------------------+
+  | 
+  +-----------------------------------------+
+ */
+IDENT_CURRENT 不受作用域和会话的限制，而受限于指定的表。
+SCOPE_IDENTITY 和 @@IDENTITY 返回在当前会话中的任何表内所生成的最后一个标识值。
+但是，SCOPE_IDENTITY 只返回插入到当前作用域中的值；@@IDENTITY 不受限于特定的作用域。
+
+
+/**
+  +-----------------------------------------+
+ * 19.使用REGEXP匹配中文(待完善)
   +-----------------------------------------+
   | REGEXP 同义于 RLIKE
   +-----------------------------------------+
@@ -143,7 +165,7 @@ update qq_shuxingzhi set `title_en`=`title` where not (`title` REGEXP '[\u4e00-\
 
 /**
   +-----------------------------------------+
- * 10.中文模糊搜索(待整理，待验证)
+ * 20.中文模糊搜索(待整理，待验证)
   +-----------------------------------------+
   | 在MySQL中，进行中文排序和查找的时候，对汉字的排序和查找结果是错误的。
   | 原因是：MySQL在查询字符串时是大小写不敏感的，在编绎MySQL时一般以ISO-8859字符集作为默认的字符集，因此在比较过程中中文编码字符大小写转换造成了这种现象。
@@ -153,27 +175,17 @@ update qq_shuxingzhi set `title_en`=`title` where not (`title` REGEXP '[\u4e00-\
 SELECT * FROM table WHERE locate(field,'李') > 0;
 SELECT * FROM TABLE WHERE FIELDS LIKE BINARY '%FIND%';
 
-
-
-
-
-
-
-
 /**
   +-----------------------------------------+
- * 8.进阶基础操作--待整理
+ * 20.left join + where(待整理，待验证)
+  +-----------------------------------------+
+  | 在MySQL中，进行中文排序和查找的时候，对汉字的排序和查找结果是错误的。
+  | 原因是：MySQL在查询字符串时是大小写不敏感的，在编绎MySQL时一般以ISO-8859字符集作为默认的字符集，因此在比较过程中中文编码字符大小写转换造成了这种现象。
+  |
   +-----------------------------------------+
  */
-ALTER TABLE  `syk_login` ADD  `user_id` INT( 11 ) NULL ,ADD INDEX (  `user_id` )
-alter table 表名 drop 列名;
-alter table 表名 add 列名 column specifications and constraints;
-alter table 表名 add 列名 column specifications and constraints first;
-alter table 表名 add 列名 column specifications and constraints after 列名;
-alter table ad_attribute modify `title_en` varchar(255) after `title`;		--移动列的顺序;需要指出字段类型
+SELECT wz020_sites_article.*,wz020_sites_category.name as category FROM `wz020_sites_article` LEFT JOIN wz020_sites_category on wz020_sites_article.category=wz020_sites_category.id WHERE ( `category` IN ('9','makeItems2') )
 
-ROW_COUNT()函数的确只对UPDATE，DELETE，INSERT操作起作用，而且是这些操作发生了实际影响时才会记录数据。
-mysql_affected_rows();select ROW_COUNT()
 
 
 
@@ -191,17 +203,35 @@ begin
        select user() as first_col, now() as second_col, now() as third_col;
        end
 --------------
-优化limit和offset 
-MySQL的limit工作原理就是先读取n条记录，然后抛弃前n条，读m条想要的，所以n越大，性能会越差。 
-优化前SQL: SELECT * FROM member ORDER BY last_active LIMIT 50,5 
-优化后SQL: SELECT * FROM member INNER JOIN (SELECT member_id FROM member ORDER BY last_active LIMIT 50, 5) USING (member_id) 
+mysql> delimiter |
+mysql>
+mysql> CREATE TRIGGER tr_rwxdfbb_bi BEFORE INSERT ON t_rwxdfbb
+    ->   FOR EACH ROW BEGIN
+    ->     if new.name is null then
+    ->          set new.name=new.id;
+    ->     end if;
+    ->   END;
+    -> |
+----------------------------------------
+/**
+  +-----------------------------------------+
+ * 8.进阶基础操作--待整理
+  +-----------------------------------------+
+ */
+ALTER TABLE  `syk_login` ADD  `user_id` INT( 11 ) NULL ,ADD INDEX (  `user_id` )
+alter table 表名 drop 列名;
+alter table 表名 add 列名 column specifications and constraints;
+alter table 表名 add 列名 column specifications and constraints first;
+alter table 表名 add 列名 column specifications and constraints after 列名;
+
 /**
   +---------------------------------------------------------------+
   * 普及常识
   *	
-  * 	1.字符连结 select CONCAT('http://hosting328.gotoip1.com/goods.php?id=',`id`) as hre from table;字符连结
-  * 
-  * 
+  * 	1.字符连结 select CONCAT('http://hosting328.gotoip1.com/goods.php?id=',`id`) as href from table;字符连结
+  * 	2.ROW_COUNT()函数的确只对UPDATE，DELETE，INSERT操作起作用，而且是这些操作发生了实际影响时才会记录数据。
+  *	  mysql_affected_rows();select ROW_COUNT()
+  *	3.alter table ad_attribute modify `title_en` varchar(255) after `title`;	--移动列的顺序;需要指出字段类型 
   * 
   *
   * 
@@ -209,4 +239,28 @@ MySQL的limit工作原理就是先读取n条记录，然后抛弃前n条，读m�
   * 
   *
   +---------------------------------------------------------------+
- *
+ */
+
+
+/**
+目录	Table of Contents ¶
+	1.  复制记录------------------------------------------------------------------------  003
+	2.  同一字段同时满足多条件查询（haveing）-------------------------------------------  020
+	3.  表结构查询----------------------------------------------------------------------  064
+	4.  ISNULL NULLIF IFNULL------------------------------------------------------------  076
+	5.  创建触发器  存储过程------------------------------------------------------------  093
+	9.  优化limit offset----------------------------------------------------------------  131
+
+
+
+
+
+
+
+
+
+
+
+
+
+

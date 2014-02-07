@@ -290,7 +290,7 @@ function frequent_submit(url,method="post",data){
 
 /**
   +---------------------------------------------------------------+
- * 9. 获取DOM(ID/tagName/className)	对象化 
+ * 9. 获取DOM(ID/tagName/className)	不好用，待优化。对象化 
  * frequent_dom()
  * var d = new frequent_dom();		用法：d.id()/d.tagName()/d.className()
   +---------------------------------------------------------------+	
@@ -329,6 +329,186 @@ function frequent_dom(){
 }
 
 /**
+  +---------------------------------------------------------------+
+ * 10. 时钟
+ * frequent_clock(id)
+  +---------------------------------------------------------------+	
+ *  parameters string		id 时钟容器的ID
+  +---------------------------------------------------------------+	
+  | @return string(dynamic)	
+  +---------------------------------------------------------------+
+ */
+function frequent_clock(id){
+	var clock = new Date();
+	var Y = clock.getFullYear();
+	var m = (clock.getMonth()+1)<10 ? "0"+(clock.getMonth()+1):clock.getMonth()+1;
+	var d = clock.getDate()<10 ? "0"+clock.getDate() : clock.getDate();
+	var h = clock.getHours()<10 ? "0"+clock.getHours() : clock.getHours();
+	var i = clock.getMinutes()<10 ? "0"+clock.getMinutes() : clock.getMinutes();
+	var s = clock.getSeconds()<10 ? "0"+clock.getSeconds() : clock.getSeconds();
+	document.getElementById(id).innerHTML = Y+'-'+m+'-'+d+' '+h+':'+i+':'+s;
+	t = setTimeout('frequent_clock("'+id+'")',1000);	
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 11. VB 汉子拼音首字母
+ * getPY_VBscript(str)
+  +---------------------------------------------------------------+	
+ *  parameters string		str 汉字
+  +---------------------------------------------------------------+	
+  | @return string		str 拼音
+  +---------------------------------------------------------------+
+ */
+function getPY_VBscript(s) {
+    if (s != "") {
+        execScript("tmp=asc(\"" + s + "\")", "vbscript");
+        tmp = 65536 + tmp;
+        var py = "";
+        if (tmp >= 45217 && tmp <= 45252) {
+            py = "A"
+        } else if (tmp >= 45253 && tmp <= 45760) {
+            py = "B"
+        } else if (tmp >= 45761 && tmp <= 46317) {
+            py = "C"
+        } else if (tmp >= 46318 && tmp <= 46825) {
+            py = "D"
+        } else if (tmp >= 46826 && tmp <= 47009) {
+            py = "E"
+        } else if (tmp >= 47010 && tmp <= 47296) {
+            py = "F"
+        } else if ((tmp >= 47297 && tmp <= 47613) || (tmp == 63193)) {
+            py = "G"
+        } else if (tmp >= 47614 && tmp <= 48118) {
+            py = "H"
+        } else if (tmp >= 48119 && tmp <= 49061) {
+            py = "J"
+        } else if (tmp >= 49062 && tmp <= 49323) {
+            py = "K"
+        } else if (tmp >= 49324 && tmp <= 49895) {
+            py = "L"
+        } else if (tmp >= 49896 && tmp <= 50370) {
+            py = "M"
+        } else if (tmp >= 50371 && tmp <= 50613) {
+            py = "N"
+        } else if (tmp >= 50614 && tmp <= 50621) {
+            py = "O"
+        } else if (tmp >= 50622 && tmp <= 50905) {
+            py = "P"
+        } else if (tmp >= 50906 && tmp <= 51386) {
+            py = "Q"
+        } else if (tmp >= 51387 && tmp <= 51445) {
+            py = "R"
+        } else if (tmp >= 51446 && tmp <= 52217) {
+            py = "S"
+        } else if (tmp >= 52218 && tmp <= 52697) {
+            py = "T"
+        } else if (tmp >= 52698 && tmp <= 52979) {
+            py = "W"
+        } else if (tmp >= 52980 && tmp <= 53688) {
+            py = "X"
+        } else if (tmp >= 53689 && tmp <= 54480) {
+            py = "Y"
+        } else if (tmp >= 54481 && tmp <= 62289) {
+            py = "Z"
+        } else {
+            py = s.charAt(0)
+        }
+        return py
+    }
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 12. 设置打印区域
+ * frequent_doPrint(start,end)
+  +---------------------------------------------------------------+	
+ *  parameters string		start 开始标记
+ *  parameters string		end 结束标记
+  +---------------------------------------------------------------+	
+  | 例：frequent_doPrint("<!--startprint-->","<!--endprint-->")
+  +---------------------------------------------------------------+	
+ */
+function frequent_doPrint(start,end) { 
+	bdhtml=window.document.body.innerHTML; 
+	startStr = start; 
+	endStr = end; 
+	prnhtml=bdhtml.substr(bdhtml.indexOf(startStr)+17); 
+	prnhtml=prnhtml.substring(0,prnhtml.indexOf(endStr)); 
+	window.document.body.innerHTML=prnhtml; 
+	window.print(); 
+}
+/**
+  +---------------------------------------------------------------+
+ * 13. 表格导出excel
+ * frequent_2excel(id)
+  +---------------------------------------------------------------+	
+ *  parameters string		id 要转化的table节点id
+  +---------------------------------------------------------------+	
+ */
+function frequent_2excel(id) {//整个表格拷贝到EXCEL中
+    var curTbl = document.getElementById(id);
+    var oXL = new ActiveXObject("Excel.Application");
+    //创建AX对象excel
+    var oWB = oXL.Workbooks.Add();
+    //获取workbook对象
+    var oSheet = oWB.ActiveSheet;
+    //激活当前sheet
+    var sel = document.body.createTextRange();
+    sel.moveToElementText(curTbl);
+    //把表格中的内容移到TextRange中
+    sel.select();
+    //全选TextRange中内容
+    sel.execCommand("Copy");
+    //复制TextRange中内容 
+    oSheet.Paste();
+    //粘贴到活动的EXCEL中      
+    oXL.Visible = true;
+    //设置excel可见属性
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 14. 闭包函数（待整理）
+  +---------------------------------------------------------------+	
+  | 不适用闭包的话，test2无法延迟
+  +---------------------------------------------------------------+	
+ */
+function callLater(paramA, paramB, paramC){
+/* 返回一个由函数表达式创建的匿名内部函数的引用:- */
+var style = document.getElementById("test").style;
+	return (function(){
+	/* 这个内部函数将通过 - setTimeout - 执行，
+	而且当它执行时它会读取并按照传递给
+	外部函数的参数行事：
+	*/
+	//style.paramB = paramC;
+	style[paramB] = paramC;
+	});
+}
+function c2(paramA, paramB, paramC){
+	alert('?');
+}
+//var functRef = callLater("test", "display", "none");
+test_1 = setTimeout("c2(1,2,3)", 2000);
+test_2 = setTimeout(callLater(paramA, paramB, paramC),2000);
+
+/**
+  +---------------------------------------------------------------+
+ * 15. 子窗口操作父窗口
+  +---------------------------------------------------------------+	
+ */
+
+	var childWindow = window.open("/index.php");
+	childWindow.close();
+	window.location.reload();
+//	window.opener 实际上就是通过window.open打开的窗体的父窗体。
+//	window.opener.test(); ---调用父窗体中的test()方法
+
+
+
+
+/**
  +----------------------------------------------------------------+
  * 正则
  * 	1.匹配全中文		/^[\u4e00-\u9fa5]+$/
@@ -340,13 +520,18 @@ function frequent_dom(){
   +---------------------------------------------------------------+
   * 普及常识
   *	
-  *	JSON.stringify(jsonObject)			query转换json对象为字符串
-  *	三元运算
+  * 1.	JSON.stringify(jsonObject)			query转换json对象为字符串
+  * 2.	三元运算
   *		形式1：(a==11) ? x=99:x=60;		输出99;条件为真的时候,执行第一个;为假执行第二个。
   *		形式2：x= (false) ? 99:60;		输出60;条件为真的时候,执行第一个；为假执行第二个。
   *		形式3: x = null || 18;			输出18;不存在执行第二个。
   *		       x = "" || 18;			输出18;不存在执行第二个。
   *		形式4: x = "x" || 18;			输出x;存在,执行第一个。
+  * 3.	setTimeout
+  *		var t = setTimeout('$("p").html("it is me")',2000);
+  *		setTimeout和php sleep不同，它只延迟自身代码的执行，后面的代码会首先执行
+  *		可以用clearTimeout(t)清除指定的
+  * 4. 函数内部声明变量的时候，一定要使用var命令。如果不用的话，你实际上声明了一个全局变量！
   +---------------------------------------------------------------+
  */
 
@@ -362,12 +547,14 @@ function frequent_dom(){
 	7.  浮点数运算---------------------------------------------------------------------- 210
 	8.  js创建表单提交------------------------------------------------------------------ 263
 	9.  获取DOM------------------------------------------------------------------------- 293
-	8.  -------------------------------------------------------------------------------- 244
-	10. 合并数组------------------------------------------------------------------------ 357
-	11. 字符与16进制互转---------------------------------------------------------------- 371
-	12. 获取客户端 ip------------------------------------------------------------------- 398
-	13. 纯真ip地址---------------------------------------------------------------------- 445
-	14. php汉字转拼音------------------------------------------------------------------- 661
+	10. 时钟---------------------------------------------------------------------------- 333
+	11. VB 汉字拼音--------------------------------------------------------------------- 355
+	12. 设置打印区域-------------------------------------------------------------------- 423
+	13. 表格导出excel------------------------------------------------------------------- 443
+	14. 闭包函数（待整理）-------------------------------------------------------------- 661
+	
+
+	11. -------------------------------------------------------------------------------- 371
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126

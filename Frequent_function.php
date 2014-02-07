@@ -22,7 +22,7 @@
   +---------------------------------------------------------------+	
   | @return string
   +---------------------------------------------------------------+
- *
+ */
 	strip_tags($input);
 	htmlspecialchars();
 	trim();
@@ -119,6 +119,7 @@ function frequent_endTime($startTime,$during,$mode=0,$holidy){
 function frequent_infinite_category($arr, $pid = 0) {
 	$tree = array();
 	foreach ($arr as $k => $v) {
+		//	$condition = $self ? (($v["pid"] == $pid) or ($v["id"] == $pid)) : $v["pid"] == $pid; 包含自己
 		if ($v['pid'] == $pid)		$tree[] = $v;
 	}
 	if (empty($tree))return null;
@@ -713,7 +714,7 @@ function frequent_get_file_info($path){
   +---------------------------------------------------------------+
  * 17 数组,json,字符 
  +---------------------------------------------------------------+
- |	SON(JavaScript Object Notation) 是一种轻量级的数据交换格式。
+ |	JSON(JavaScript Object Notation) 是一种轻量级的数据交换格式。
  |	其实就是字符。
  |	具有约定的格式： json string 格式字符串
  +---------------------------------------------------------------+
@@ -737,7 +738,17 @@ function frequent_unicode_decode_json($str){
 	$str = preg_replace_callback("/\\\u([\w]{4})/",conv,$str);
 	return $str;
 }
-
+//简单实现json到php数组转换功能
+function frequent_simple_json_parser($json){
+        $json = str_replace("{","",str_replace("}","", $json));
+        $jsonValue = explode(",", $json);
+        $arr = array();
+        foreach($jsonValue as $v){
+        	$jValue = explode(":", $v);
+        	$arr[str_replace('"',"", $jValue[0])] = (str_replace('"', "", $jValue[1]));
+        }
+        return $arr;
+}
 /**
   +---------------------------------------------------------------+
  * 18. utf8编码字符串截取
@@ -844,7 +855,7 @@ function frequent_hanzi_test($str){
 /**
   +---------------------------------------------------------------+
  * 21. 模拟页面浏览
- * frequent_cur_post($url,$json)
+ * frequent_curl_post($url,$json)
   +---------------------------------------------------------------+	
  *  parameters string $url	目标页面
  *  parameters string $json	传递的参数
@@ -852,7 +863,7 @@ function frequent_hanzi_test($str){
   | @return boole
   +---------------------------------------------------------------+	
  */
-function frequent_cur_post($url,$json){
+function frequent_curl_post($url,$json){
 	$ch = curl_init();  
 	curl_setopt($ch, CURLOPT_URL, $url);  
 	curl_setopt($ch, CURLOPT_POST, 1);  
@@ -861,6 +872,28 @@ function frequent_cur_post($url,$json){
 	curl_exec($ch);  
 	curl_close($ch);
 }   
+function do_post($url, $data){
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE); 
+    curl_setopt($ch, CURLOPT_POST, TRUE); 
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data); 
+    curl_setopt($ch, CURLOPT_URL, $url);
+    $ret = curl_exec($ch);
+
+    curl_close($ch);
+    return $ret;
+}
+function get_url_contents($url){
+    if (ini_get("allow_url_fopen") == "1")	return file_get_contents($url);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_URL, $url);
+    $result =  curl_exec($ch);
+    curl_close($ch);
+    return $result;
+}
+
 
 /**
   +---------------------------------------------------------------+
@@ -968,7 +1001,8 @@ function is_utf8($string) {
  *	2.单词边界：  		preg_match("/\bweb\b/i", "PHP is the web scripting language of choice.")
  *	2.0宽断言：		preg_match('/(?<= filter=").*?(?=")/', 'cat="1" filter="status=1"', $matches); 
  * 	4.匹配全中文		preg_match("/^[\x{4e00}-\x{9fa5}]+$/u",$str);
- * 
+ * 	5.将 URL 替换为超连接	$text = ereg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]","<a href=\"\\0\">\\0</a>", $text);
+ *
  +----------------------------------------------------------------+
  */
 
@@ -988,8 +1022,25 @@ function is_utf8($string) {
   *	ignore_user_abort(true);
   *	serialize — 产生一个可存储的值的表示。	想要将已序列化的字符串变回 PHP 的值，可使用 unserialize()
   *	eval('$return= $this->' . $string . '($back);');
+  *	当前地址：
+  *		$currentURL = 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+  *	session_id();session_name();获取当前链接的session的ID和name
+  *	_initialize	__construct()
   +---------------------------------------------------------------+
  */
+
+/**
+  +---------------------------------------------------------------+
+ * curl选项
+ *
+ * 1.curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+ *	作用:去验证对方提供的（读取https）证书是否有效，过期，或是否通过CA颁发的！
+ *	在Windows下，curl找不到CA证书去验证对方的证书!也可用
+ *	curl_setopt($ch, CURLOPT_CAINFO, 'E:\path\to\curl-ca-bundle.crt');指定证书的位置。
+ * 	没有证书可到此处下载：http://curl.haxx.se/docs/sslcerts.html（待整理）
+  +---------------------------------------------------------------+
+ */
+
 
 /**
 目录	Table of Contents ¶
@@ -1015,7 +1066,7 @@ function is_utf8($string) {
 	18. utf8编码字符串截取-------------------------------------------------------------- 746
 	19. 字符串截取---------------------------------------------------------------------- 826
 	20. 正则匹配全中文------------------------------------------------------------------ 126
-	21. 模拟页面浏览-------------------------------------------------------------------- 846
+	21. 模拟页面浏览(cURL)-------------------------------------------------------------- 846
 	22. 随机字串------------------------------------------------------------------------ 867
 	23. 字节格式化---------------------------------------------------------------------- 921
 	24. 正则是否UTF-8编码--------------------------------------------------------------- 942
