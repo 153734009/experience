@@ -148,12 +148,13 @@ SCOPE_IDENTITY 和 @@IDENTITY 返回在当前会话中的任何表内所生成�
 但是，SCOPE_IDENTITY 只返回插入到当前作用域中的值；@@IDENTITY 不受限于特定的作用域。
 
 
+
 /**
   +-----------------------------------------+
  * 19.使用REGEXP匹配中文(待完善)
   +-----------------------------------------+
   | REGEXP 同义于 RLIKE
-  +-----------------------------------------+
+  +-----------------------------------------
  */
 /*1.匹配 含有非中文字符的记录*/
 update qq_shuxingzhi set `title_en`=`title` where `title` REGEXP '[\u4e00-\u9fa5]';
@@ -166,6 +167,7 @@ update qq_shuxingzhi set `title_en`=`title` where not (`title` REGEXP '[\u4e00-\
 /**
   +-----------------------------------------+
  * 20.中文模糊搜索(待整理，待验证)
+ *    匹配替换连接，可用于真静态，的页面连接批量替换
   +-----------------------------------------+
   | 在MySQL中，进行中文排序和查找的时候，对汉字的排序和查找结果是错误的。
   | 原因是：MySQL在查询字符串时是大小写不敏感的，在编绎MySQL时一般以ISO-8859字符集作为默认的字符集，因此在比较过程中中文编码字符大小写转换造成了这种现象。
@@ -174,6 +176,7 @@ update qq_shuxingzhi set `title_en`=`title` where not (`title` REGEXP '[\u4e00-\
  */
 SELECT * FROM table WHERE locate(field,'李') > 0;
 SELECT * FROM TABLE WHERE FIELDS LIKE BINARY '%FIND%';
+update gh_menu set url = REPLACE(`url`,'pth.eweiwei.com','www.pth-express.com')
 
 /**
   +-----------------------------------------+
@@ -223,17 +226,26 @@ alter table 表名 drop 列名;
 alter table 表名 add 列名 column specifications and constraints;
 alter table 表名 add 列名 column specifications and constraints first;
 alter table 表名 add 列名 column specifications and constraints after 列名;
+select COLUMN_NAME from information_schema.columns where table_name='w_sites'
 
+/**
+  +-----------------------------------------+
+ * 21.自增值
+  +-----------------------------------------+
+ */
+$auto_increment = M()->query('SHOW TABLE STATUS where name="w_sites_category"');
+$auto_increment = $auto_increment[0]['Auto_increment'];
 /**
   +---------------------------------------------------------------+
   * 普及常识
   *	
   * 	1.字符连结 select CONCAT('http://hosting328.gotoip1.com/goods.php?id=',`id`) as href from table;字符连结
   * 	2.ROW_COUNT()函数的确只对UPDATE，DELETE，INSERT操作起作用，而且是这些操作发生了实际影响时才会记录数据。
-  *	  mysql_affected_rows();select ROW_COUNT()
-  *	3.alter table ad_attribute modify `title_en` varchar(255) after `title`;	--移动列的顺序;需要指出字段类型 
-  * 
-  *
+  *			mysql_affected_rows();select ROW_COUNT()
+  *		3.alter table ad_attribute modify `title_en` varchar(255) after `title`;	--移动列的顺序;需要指出字段类型 
+  *		4.TRUNCATE   TABLE
+  *		5.$r = M('')->query("SHOW TABLE STATUS LIKE  'w_sites_category%'");	$r[0]['Auto_increment'];
+  *		  SHOW TABLE STATUS where name='w_sites_category'"
   * 
   * 
   * 

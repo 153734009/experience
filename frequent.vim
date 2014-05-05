@@ -25,3 +25,18 @@
 "6.夸文件多行复制	
 	"a10yy	
 	"ap
+"7.代码折叠
+manual		手工定义折叠
+indent		更多的缩进表示更高级别的折叠
+expr		用表达式来定义折叠
+syntax		用语法高亮来定义折叠
+diff		对没有更改的文本进行折叠
+marker		对文中的标志折叠
+
+"8.增加一空行，方便阅读
+	:s%/\n/\r\r/gc
+"9.递增 插入
+let i=0 | g/toPlaced/s//\=i/ |let i=i+1
+"10. 宏录制（调用 6@a ）
+	qa 动作 q 
+	qa dw j q	=>	6@a

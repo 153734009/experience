@@ -1,0 +1,11 @@
+mysql 创建一个用户 xxx，密码 aaa，指定一个数据库 xxxdb 给 xxx
+
+
+mysql -u root -p
+password
+use mysql;
+insert into user(host,user,password) values('localhost','xxx',password('aaa'));
+flush privileges;
+create database haildb;
+grant all privileges on xxxdb.* to hail@localhost identified by 'xxx';
+flush privileges;

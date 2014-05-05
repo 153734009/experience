@@ -79,17 +79,19 @@ function frequent_is_workday ($theTime,$mode=0,$holiday){
   +---------------------------------------------------------------+
 */
 function frequent_endTime($startTime,$during,$mode=0,$holidy){
-	function new_startTime($t,$a,$b){
-		if(!frequent_is_workday($t,$a,$b)&&frequent_is_workday($t+86400,$a,$b)){//今天是假日+明天是工作日
-			$arr = getdate($t+86400);
-			//mktime(hour,minute,second,month,day,year)
-			$t = mktime(9,0,0,$arr['mon'],$arr['mday'],$arr['year']);//设定从工作日的几点开始计算
-		}elseif(!frequent_is_workday($t,$a,$b)&&!frequent_is_workday($t+86400,$a,$b)){//今天是假日+明天是假日
-			$t += 86400;
-			$t = new_startTime($t,$a,$b);
-		}else{
+	if (!function_exists('new_startTime')){
+		function new_startTime($t,$a,$b){
+			if(!frequent_is_workday($t,$a,$b)&&frequent_is_workday($t+86400,$a,$b)){//今天是假日+明天是工作日
+				$arr = getdate($t+86400);
+				//mktime(hour,minute,second,month,day,year)
+				$t = mktime(9,0,0,$arr['mon'],$arr['mday'],$arr['year']);//设定从工作日的几点开始计算
+			}elseif(!frequent_is_workday($t,$a,$b)&&!frequent_is_workday($t+86400,$a,$b)){//今天是假日+明天是假日
+				$t += 86400;
+				$t = new_startTime($t,$a,$b);
+			}else{
+			}
+			return $t;
 		}
-		return $t;
 	}
 	$startTime = new_startTime($startTime,$mode,$holiday); //通过new_startTime传递$mode,$holiday 给 frequent_is_workday
 	for($i=1;$i<=$during;$i++){
@@ -131,6 +133,49 @@ function frequent_infinite_category($arr, $pid = 0) {
 
 /**
   +---------------------------------------------------------------+
+ * 6. tree逆树过程
+ * @param  array	$arr	数形数组
+ * @param  array	$field	标明缩进的字段和子类字段
+ * @param  array	$icon	缩进图标，可以使用图片，文字，html
+ * @param  string	$prefix 
+  +---------------------------------------------------------------+
+  | @return array  $tree
+  +---------------------------------------------------------------+
+*/
+function frequent_tree2list($arr,
+	$fields=array('title'=>'title','son'=>'son'),
+	$icon=array('&nbsp;&nbsp;│', '&nbsp;&nbsp;├ ', '&nbsp;&nbsp;└ '),
+	$prefix='')
+{
+	static $first=true;
+	static $arr_new;
+	$prefix = ($first) ? $prefix:$prefix.$icon[0];
+	foreach ($arr as $k=>$v){
+		$count = count($arr);
+		if($first){
+			$first=false;
+			$lastIcon = $icon[1];
+		}elseif($k == ($count-1)){
+			$lastIcon = $icon[2];
+		}else{
+			$lastIcon = $icon[1];
+		}
+		if(!$v[$fields['son']]){
+			$v[$fields['title']] = $prefix.$lastIcon.$v[$fields['title']];
+			$arr_new[] = $v;
+		}else{
+			$v[$fields['title']] = $prefix.$lastIcon.$v[$fields['title']];
+			$temp = $v;
+			unset($temp[$fields['son']]);
+			$arr_new[] = $temp;
+			$fn = __FUNCTION__;
+			$fn($v[$fields['son']],$fields,$icon,$prefix);//frequent_tree2list($v[$fields['son']],$fields,$icon,$prefix);
+		}
+	}
+	return $arr_new;
+}
+/**
+  +---------------------------------------------------------------+
  * 5. 多维数组转1维
  * 应用场景：一般在数组里面的值想转成 字符串时使用
  * frequent_multi_2_uni($arr)
@@ -141,13 +186,21 @@ function frequent_infinite_category($arr, $pid = 0) {
   | header("Content-type: text/html; charset=utf-8");
  +---------------------------------------------------------------+
 */ 
-function multidimensional_2_unidimensional($array) {
+function multidimensional_2_unidimensional($array,$items=false) {
 	static $return = array();
 	foreach ($array as $key=>$value){
 		if (is_array($value)){
-			multidimensional_2_unidimensional($value); 	
+			multidimensional_2_unidimensional($value,$items); 	
 		}else{
-		$return[] = $value; // 不保留数组的key ，所有值都不会丢失
+			if(is_array($items)){
+				if(in_array($key,$items)){	
+					$return[] = $value;
+				}
+			}elseif($items){
+				if($key == $items)	$return[]=$value;
+			}else{
+				$return[]=$value;
+			}
 		// $return[$key] = $value;保留Key，但是相同key的会被覆盖	
 		}
 	}
@@ -233,9 +286,8 @@ function frequent_unicode_decode($code){
   | @return string $thumb
   +---------------------------------------------------------------+
  */
-function frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder){
+function frequent_thumb($url,$width=100,$height=100,$folder='',$autoCrop=0,$nopic='nopic.jpg'){
 	$allowType = array(1=>'gif',2=>'jpeg',3=>'png');
-		//这里的索引需要和$type的索引一致。
 	if(empty($url)) return $nopic;
 	list($full_width,$full_height,$type,$attr)=getimagesize($url);
 	if (!$allowType[$type]){
@@ -243,19 +295,7 @@ function frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder){
 	}else{
 		$type = $allowType[$type];//索引转文字
 	}
-	 //list($width, $height, $type, $attr) = getimagesize("img/flag.jpg");
-	 // getimagesize()返回一个具有四个单元的数组。索引 0 包含图像宽度的像素值，索引 1 包含图像高度的像素值。索引 2 是图像类型的标记：1 = GIF，2 = JPG，3 = PNG，4 = SWF，5 = PSD，6 = BMP，7 = TIFF(intel byte order)，8 = TIFF(motorola byte order)，9 = JPC，10 = JP2，11 = JPX，12 = JB2，13 = SWC，14 = IFF，15 = WBMP，16 = XBM。这些标记与 PHP 4.3.0 新加的 IMAGETYPE 常量对应。索引 3 是文本字符串，内容为“height="yyy" width="xxx"”，可直接用于 IMG 标记。
-	 // list()函数用数组中的元素为一组变量赋值。
-	if ($full_width>$width && $full_height>$height){
-		if(!$folder) $folder='Public/thumb/';
-	/* 略缩图的位置和原图同一文件夹	
-		if(!$folder) {
-			$pathinfo = pathinfo($url);
-			//pathinfo('/home/ramki.pdf');
-			//Array([dirname] => /home/ramki	[basename] => ramki.pdf		[extension] => pdf	[filename] => ramki)
-			$folder= $pathinfo['dirname'];
-		}
-	 */
+	if ($full_width>$width || $full_height>$height){
 		$pathinfo = pathinfo($url);
 		$thumb = $folder.'thumb_'.$width.'_'.$height.'_'.$pathinfo['basename'];//取得原图的文件类型
 		if(is_file($thumb)){
@@ -264,38 +304,41 @@ function frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder){
 	}else{
 		return $url;
 	}
-	if($autoCrop){
+	$dst_x = $dst_y = 0;$dst_w = $width;$dst_h = $height;
+	if($autoCrop==0){
 		if($full_width/$width > $full_height/$height){
 			$full_width =$width * ($full_height/$height);
 		}else{
 			$full_height=$height * ($full_width/$width);
 		}
-	}else{
+	}elseif($autoCrop==1){
 		$scale = min($width/$full_width,$height/$full_height);
-		if($scale>=1){
-			$width=$full_width;
-			$height=$full_height;
+		$dst_w = (int)($full_width * $scale);
+		$dst_h = (int)($full_height * $scale);
+	}else{
+		if($full_width/$width > $full_height/$height){
+			$scale = $width/$full_width;
+			$dst_h = (int)($full_height * $scale);
+			$dst_y = ($height-$dst_h)/2;
 		}else{
-			$width = (int)($full_width * $scale);
-			$height= (int)($full_height * $scale);
-		}
+			$scale = $height/$full_height;
+			$dst_w = (int)($full_width * $scale);
+			$dst_x = ($width-$dst_w)/2;
+		}	
 	}
-
 	$I_function = 'imagecreatefrom'.$type;
 	$O_function = 'image'.$type;
 	$full_image = $I_function($url);
 	if($type != 'gif' && function_exists('imagecreatetruecolor')){
-		//优先选择imagecreatetruecolor
 		$thumb_image = imagecreatetruecolor($width, $height);
 	}else{
 		$thumb_image = imagecreate($width, $height);
 	}
+	imagefill($thumb_image, 0, 0, imagecolorallocate($thumb_image, 255, 255, 255));
 	if(function_exists('imagecopyresampled')){
-		//优先选择imagecopyresampled
-		//bool imagecopyresampled ( resource $dst_image , resource $src_image , int $dst_x , int $dst_y , int $src_x , int $src_y , int $dst_w , int $dst_h , int $src_w , int $src_h )
-		imagecopyresampled($thumb_image, $full_image, 0,0, 0,0, $width,$height, $full_width,$full_height);
+		imagecopyresampled($thumb_image, $full_image, $dst_x,$dst_y, 0,0, $dst_w,$dst_h, $full_width,$full_height);
 	}else{
-		imagecopyresized($thumb_image, $full_image, 0,0, 0,0,$width,$height, $full_width,$full_height);
+		imagecopyresized($thumb_image, $full_image, $dst_x,$dst_y, 0,0,$dst_w,$dst_h, $full_width,$full_height);
 	}
 	if($type=='gif' || $type=='png') {
 		$background_color  =  imagecolorallocate($thumb_image,  255, 255, 255);  //  指派一个白色
@@ -304,9 +347,82 @@ function frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder){
 	$O_function($thumb_image, $thumb);
 	imagedestroy($thumb_image);  //图片流一般比较大，建议随手删除
 	imagedestroy($full_image);
-	
 	return $thumb;
 }
+//function frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder){
+//	$allowType = array(1=>'gif',2=>'jpeg',3=>'png');
+//		//这里的索引需要和$type的索引一致。
+//	if(empty($url)) return $nopic;
+//	list($full_width,$full_height,$type,$attr)=getimagesize($url);
+//	if (!$allowType[$type]){
+//	       	return false;
+//	}else{
+//		$type = $allowType[$type];//索引转文字
+//	}
+//	 //list($width, $height, $type, $attr) = getimagesize("img/flag.jpg");
+//	 // getimagesize()返回一个具有四个单元的数组。索引 0 包含图像宽度的像素值，索引 1 包含图像高度的像素值。索引 2 是图像类型的标记：1 = GIF，2 = JPG，3 = PNG，4 = SWF，5 = PSD，6 = BMP，7 = TIFF(intel byte order)，8 = TIFF(motorola byte order)，9 = JPC，10 = JP2，11 = JPX，12 = JB2，13 = SWC，14 = IFF，15 = WBMP，16 = XBM。这些标记与 PHP 4.3.0 新加的 IMAGETYPE 常量对应。索引 3 是文本字符串，内容为“height="yyy" width="xxx"”，可直接用于 IMG 标记。
+//	 // list()函数用数组中的元素为一组变量赋值。
+//	if ($full_width>$width && $full_height>$height){
+//		if(!$folder) $folder='Public/thumb/';
+//	/* 略缩图的位置和原图同一文件夹	
+//		if(!$folder) {
+//			$pathinfo = pathinfo($url);
+//			//pathinfo('/home/ramki.pdf');
+//			//Array([dirname] => /home/ramki	[basename] => ramki.pdf		[extension] => pdf	[filename] => ramki)
+//			$folder= $pathinfo['dirname'];
+//		}
+//	 */
+//		$pathinfo = pathinfo($url);
+//		$thumb = $folder.'thumb_'.$width.'_'.$height.'_'.$pathinfo['basename'];//取得原图的文件类型
+//		if(is_file($thumb)){
+//			return $thumb;
+//		}
+//	}else{
+//		return $url;
+//	}
+//	if($autoCrop){
+//		if($full_width/$width > $full_height/$height){
+//			$full_width =$width * ($full_height/$height);
+//		}else{
+//			$full_height=$height * ($full_width/$width);
+//		}
+//	}else{
+//		$scale = min($width/$full_width,$height/$full_height);
+//		if($scale>=1){
+//			$width=$full_width;
+//			$height=$full_height;
+//		}else{
+//			$width = (int)($full_width * $scale);
+//			$height= (int)($full_height * $scale);
+//		}
+//	}
+//
+//	$I_function = 'imagecreatefrom'.$type;
+//	$O_function = 'image'.$type;
+//	$full_image = $I_function($url);
+//	if($type != 'gif' && function_exists('imagecreatetruecolor')){
+//		//优先选择imagecreatetruecolor
+//		$thumb_image = imagecreatetruecolor($width, $height);
+//	}else{
+//		$thumb_image = imagecreate($width, $height);
+//	}
+//	if(function_exists('imagecopyresampled')){
+//		//优先选择imagecopyresampled
+//		//bool imagecopyresampled ( resource $dst_image , resource $src_image , int $dst_x , int $dst_y , int $src_x , int $src_y , int $dst_w , int $dst_h , int $src_w , int $src_h )
+//		imagecopyresampled($thumb_image, $full_image, 0,0, 0,0, $width,$height, $full_width,$full_height);
+//	}else{
+//		imagecopyresized($thumb_image, $full_image, 0,0, 0,0,$width,$height, $full_width,$full_height);
+//	}
+//	if($type=='gif' || $type=='png') {
+//		$background_color  =  imagecolorallocate($thumb_image,  255, 255, 255);  //  指派一个白色
+//		imagecolortransparent($thumb_image, $background_color);  //  设置为透明色，若注释掉该行则输出绿色的图
+//	}
+//	$O_function($thumb_image, $thumb);
+//	imagedestroy($thumb_image);  //图片流一般比较大，建议随手删除
+//	imagedestroy($full_image);
+//	
+//	return $thumb;
+//}
 
 /**
   +---------------------------------------------------------------+
@@ -495,7 +611,6 @@ function frequent_ip_2_addr($ip) {
 			$BeginNum = $Middle;
 		}
 	}
-	//下面的代码读晕了，没读明白，有兴趣的慢慢读
 	$ipFlag = fread($fd, 1);
 	if($ipFlag == chr(1)) {
 		$ipSeek = fread($fd, 3);
@@ -728,12 +843,14 @@ $frequent_test_str = json_encode($frequent_test_arr);
 $frequent_test_str = preg_replace_callback("#\\\u([\w]{4})#",create_function('$matches', 'return frequent_unicode_decode($matches[0]);'),$frequent_test_str);
 	//匹配的结果是数组 Array(0=>'\u5e7f',1=>'5e7f')
 function frequent_unicode_decode_json($str){
-	function conv($arr){
-		$code_1 = base_convert(substr($arr[0],2,2),16,10);
-		$code_2 = base_convert(substr($arr[0], 4), 16, 10);
-		$c = chr($code_1).chr($code_2);
-		$c = iconv('UCS-2','UTF-8',$c);
-		return $c;
+	if (!function_exists('conv')){
+		function conv($arr){
+			$code_1 = base_convert(substr($arr[0],2,2),16,10);
+			$code_2 = base_convert(substr($arr[0], 4), 16, 10);
+			$c = chr($code_1).chr($code_2);
+			$c = iconv('UCS-2','UTF-8',$c);
+			return $c;
+		}
 	}
 	$str = preg_replace_callback("/\\\u([\w]{4})/",conv,$str);
 	return $str;
@@ -835,6 +952,8 @@ function msubstr($str, $start=0, $length, $charset="utf-8", $suffix=true) {
 /**
   +---------------------------------------------------------------+
  * 20. 正则匹配全中文
+ *     正则匹配全邮箱
+ *     正则匹配全身份证
   +---------------------------------------------------------------+	
  *  parameters string
   +---------------------------------------------------------------+	
@@ -852,6 +971,19 @@ function frequent_hanzi_test($str){
 	}
 }
 
+preg_match("/^[a-z]([a-z0-9]*[-_\.]?[a-z0-9]+)*@([a-z0-9]*[-_]?[a-z0-9]+)+[\.][a-z]{2,3}([\.][a-z]{2})?$/i; ",$_POST['card_email']);
+/*
+【身份证合法性检查程序】（计算最后一位检验码）
+[ 理论 ]
+18位身份证：前6位是区位码（表示区域），接下来8位是表示出生日期，接下来3位是本区域的所有当天出生的人的序列号（奇数为男，偶数为女），最后1位是整个前面17位的运算得出的校验码，算法下面有实现。
+15位身份证：前6位是区位码，接下来6位是出生日期（没有19），接下来3位是当天出生的人的序列号（奇数为男，偶数为女）
+15位转18位：日期前面增加19，然后得出17位，最后通过这个17位运算得到最后1位校验码
+15位
+  return (bool) preg_match("/^[1-9]\d{7}((0\d)|(1[0-2]))(([0|1|2]\d)|3[0-1])\d{3}$/", $a);
+18位
+	return (bool) preg_match("/^[1-9]\d{5}[1-9]\d{3}((0\d)|(1[0-2]))(([0|1|2]\d)|3[0-1])\d{3}(\d|x|X)$/", $a);
+ */
+
 /**
   +---------------------------------------------------------------+
  * 21. 模拟页面浏览
@@ -863,8 +995,39 @@ function frequent_hanzi_test($str){
   | @return boole
   +---------------------------------------------------------------+	
  */
+function curlPost($username,$pwd) {
+		$header = array(
+            'Accept:*/*',
+            'Accept-Charset:GBK,utf-8;q=0.7,*;q=0.3',
+            'Accept-Encoding:gzip,deflate,sdch',
+            'Accept-Language:zh-CN,zh;q=0.8',
+            'Connection:keep-alive',
+            'Host:mp.weixin.qq.com',
+            'Origin:https://mp.weixin.qq.com',
+            'Referer:https://mp.weixin.qq.com/',//$_SERVER['HTTP_REFERER'];Referer，告诉服务器是从哪个页面链接过来的常用于防外链
+            'X-Requested-With:XMLHttpRequest'
+        );
+        $curlhandle = curl_init(); //启动一个curl会话
+        curl_setopt($curlhandle, CURLOPT_URL, 'https://mp.weixin.qq.com/cgi-bin/login?lang=zh_CN'); //要访问的地址
+        curl_setopt($curlhandle, CURLOPT_HTTPHEADER, $header); //设置HTTP头字段的数组
+        curl_setopt($curlhandle, CURLOPT_SSL_VERIFYPEER, 0); //对认证证书来源的检查
+        curl_setopt($curlhandle, CURLOPT_SSL_VERIFYHOST, 1); //从证书中检查SSL加密算法是否存在
+        curl_setopt($curlhandle, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20100101 Firefox/23.0'); //模拟用户使用的浏览器
+        curl_setopt($curlhandle, CURLOPT_FOLLOWLOCATION, 1); //使用自动跳转
+        curl_setopt($curlhandle, CURLOPT_AUTOREFERER, 1); //自动设置Referer
+        curl_setopt($curlhandle, CURLOPT_POST, 1); //发送一个常规的Post请求
+        curl_setopt($curlhandle, CURLOPT_POSTFIELDS, array('username'=>$username,'pwd'=>md5($pwd),'f'=>'json')); //Post提交的数据包
+        curl_setopt($curlhandle, CURLOPT_COOKIE, ''); //读取储存的Cookie信息
+        curl_setopt($curlhandle, CURLOPT_TIMEOUT, 30); //设置超时限制防止死循环
+        curl_setopt($curlhandle, CURLOPT_HEADER, 1); //显示返回的Header区域内容
+        curl_setopt($curlhandle, CURLOPT_RETURNTRANSFER, 1); //获取的信息以文件流的形式返回
+		$result = curl_exec($curlhandle); //执行一个curl会话
+        curl_close($curlhandle); //关闭curl
+        var_dump($result);
+    }
 function frequent_curl_post($url,$json){
 	$ch = curl_init();  
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 	curl_setopt($ch, CURLOPT_URL, $url);  
 	curl_setopt($ch, CURLOPT_POST, 1);  
 	curl_setopt($ch, CURLOPT_POSTFIELDS, urlencode($json));  
@@ -887,6 +1050,7 @@ function get_url_contents($url){
     if (ini_get("allow_url_fopen") == "1")	return file_get_contents($url);
 
     $ch = curl_init();
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_URL, $url);
     $result =  curl_exec($ch);
@@ -894,6 +1058,30 @@ function get_url_contents($url){
     return $result;
 }
 
+
+/*
+ * 请优先执行 curl ,此方法作为没有curl的补充
+ * $param 为字符串形式的参数 name=name&pwd=pwd
+ * 请注意"\r\n" 应该被替换成更具移植性的
+ * 请注意，返回的$sock 还需要指针读取
+ */
+function frequent_fopen($url,$param){
+	$context = array('http' => 
+		array('method' => 'POST', 
+			'header' => 'Content-type: application/x-www-form-urlencoded'."\r\n". 
+			'User-Agent: Manyou API PHP Client 0.1 (non-curl) '.phpversion()."\r\n". 
+			'Content-length: ' . strlen($str), 
+			'content' => $str)
+	); 	
+	$contextid = stream_context_create($context); 
+	$sock = fopen($url, 'r', false, $contextid);
+	fclose($sock);
+	return $sock;
+}
+
+
+
+ 
 
 /**
   +---------------------------------------------------------------+
@@ -994,6 +1182,208 @@ function is_utf8($string) {
 }
 
 /**
+  +---------------------------------------------------------------+
+ * 24. 面包屑
+ * frequent_crumb($arr,$id)
+  +---------------------------------------------------------------+	
+ *  parameters array	$arr		目录数组
+ *  parameters integer 	$id			目录ID
+  +---------------------------------------------------------------+	
+  | @return blooean		
+  +---------------------------------------------------------------+	
+ */
+function frequent_crumb($arr,$id){
+	static $return=array();
+	if($arr[$id]['pid']!=0){
+		array_push($return,$arr[$id]);
+		return(frequent_crumb($arr,$arr[$id]['pid']));
+	}else{
+		array_push($return,$arr[$id]);
+		$return = array_reverse($return);
+		return $return;
+	}
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 25. 索引改键
+ * frequent_index2key($arr,$unique)
+  +---------------------------------------------------------------+	
+ *  parameters array	$arr		数组
+ *  parameters string 	$unique		能唯一标示的键
+  +---------------------------------------------------------------+	
+  | @return $arr		
+  +---------------------------------------------------------------+	
+ */
+function frequent_index2key($arr,$unique){
+	foreach ($arr as $v){
+		$return[$v[$unique]]=$v;
+	}
+	return $return;
+}
+
+
+/**
+  +---------------------------------------------------------------+
+ * 26. 获取网页当前URL
+ * http://localhost/blog/testurl.php?id=5
+  +---------------------------------------------------------------+	
+  | @return $arr		
+  +---------------------------------------------------------------+	
+ */
+//获取域名或主机地址 
+echo $_SERVER['HTTP_HOST']."<br>"; #localhost
+
+//获取网页地址 
+echo $_SERVER['PHP_SELF']."<br>"; #/blog/testurl.php
+
+//获取网址参数 
+echo $_SERVER["QUERY_STRING"]."<br>"; #id=5
+
+//获取用户代理 
+echo $_SERVER['HTTP_REFERER']."<br>"; 
+
+//获取完整的url
+echo 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+echo 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['PHP_SELF'].'?'.$_SERVER['QUERY_STRING'];
+#http://localhost/blog/testurl.php?id=5
+
+//包含端口号的完整url
+echo 'http://'.$_SERVER['SERVER_NAME'].':'.$_SERVER["SERVER_PORT"].$_SERVER["REQUEST_URI"]; 
+#http://localhost:80/blog/testurl.php?id=5
+
+//只取路径
+$url='http://'.$_SERVER['SERVER_NAME'].$_SERVER["REQUEST_URI"]; 
+echo dirname($url);
+#http://localhost/blog
+
+/**
+  +---------------------------------------------------------------+
+ * 27. 引入文件直接成为变量
+ * PHP 提供了PHP_EOL换行支持
+  +---------------------------------------------------------------+	
+  *	<?php
+  *	return array (
+  *		'openid' => 'refrech_token',
+  *	);
+  +---------------------------------------------------------------+	
+  | @return $arr		
+  +---------------------------------------------------------------+	
+ */
+$data = include('/public/mpAuth/appid.php');
+$data['today'] = 'is a good day';
+$str = "<?php".PHP_EOL."return ".var_export($data,true).';';
+file_put_contents('/public/mpAuth/appid.php',$str,true);
+
+
+/**
+  +---------------------------------------------------------------+
+ * 28. 数据对接
+ * frequent_crumb($distance)
+  +---------------------------------------------------------------+	
+  | parameters	array	$distance		远端数据
+  | @return	void				数据更新
+  +---------------------------------------------------------------+	
+ */
+function frequent_dataButt($distance){
+	//优化了的分组更新，原理和微信的更新线上'线下分组一样		
+	$local = M('user_group_association')->field('group_id')->where(array('uid'=>$uid))->select();
+	$local = multidimensional_2_unidimensional($old_groups,'group_id');
+	//本地有，远端没有
+	$toClose = array_diff($old_groups,$gids);
+	M('user_group_association')->where(array('uid'=>$uid,'group_id'=>array('in',$toClose)))->save(array('status'=>0));
+	//本地有，线上也有的
+	$intersect = array_intersect($gids,$old_groups); 
+			M('user_group_association')->where(array('uid'=>$uid,'group_id'=>array('in',$intersect)))->save(array('status'=>1));
+	//本地没有，线上有的，需要插入(mysql批量插入)
+	$toOpen = array_diff($gids,$intersect);
+	foreach ($toOpen as $v){
+		$dataList[] = array('uid'=>$uid,'group_id'=>$v,'status'=>1);
+	}
+	M('user_group_association')->addAll($dataList);
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 29. 判断是否微信浏览器
+  +---------------------------------------------------------------+	
+  | 只做简单判断，不考虑curl欺骗
+  +---------------------------------------------------------------+	
+ */
+function frequent_is_MP_Agent(){
+	$userAgent = $_SERVER["HTTP_USER_AGENT"];
+	preg_match("/MicroMessenger/i",$userAgent,$match);
+	if($match)	return true;
+	else		return false;
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 30. 测试运行时间
+ * frequent_microtime_float()
+  +---------------------------------------------------------------+	
+  | @return $float	用法:在需要测试的2个点，分别获得时间，然后相减
+  |  frequent_microtime_float()-frequent_microtime_float();
+  +---------------------------------------------------------------+	
+ */
+function frequent_microtime_float(){
+    list($usec, $sec) = explode(" ", microtime());
+    return ((float)$usec + (float)$sec);
+}
+
+/**
+ * 随着代码的修改，页面会出错
+ *
+ *
+目录	Table of Contents ¶
+	1.  输入过滤------------------------------------------------------------------------  13
+	2.  判断是否工作日------------------------------------------------------------------  32
+	3.  计算结束时间--------------------------------------------------------------------  63
+	4.  无限分类------------------------------------------------------------------------ 107
+	5.  多维数组转1维------------------------------------------------------------------- 138
+	6.  unicode编码--------------------------------------------------------------------- 163
+	7.  unidode解码--------------------------------------------------------------------- 194
+	8.  生成略缩图---------------------------------------------------------------------- 227
+	9.  仿js alert()-------------------------------------------------------------------- 317
+	10. 合并数组------------------------------------------------------------------------ 342
+	11. 字符与16进制互转---------------------------------------------------------------- 358
+	12. 获取客户端 ip------------------------------------------------------------------- 382
+	13. 纯真ip地址---------------------------------------------------------------------- 427
+	14. php汉字转拼音------------------------------------------------------------------- 576
+	15. 真实文件类型-------------------------------------------------------------------- 648
+	xx. 压缩/解压缩（见Class.zip.php）-------------------------------------------------- 000
+		https://github.com/153734009/experience
+	16. eval()-------------------------------------------------------------------------- 698
+	17. 带中文unicode json解json-------------------------------------------------------- 719
+	18. utf8编码字符串截取-------------------------------------------------------------- 746
+	19. 字符串截取---------------------------------------------------------------------- 826
+	20. 正则匹配全中文------------------------------------------------------------------ 126
+	21. 模拟页面浏览(cURL)-------------------------------------------------------------- 846
+	22. 随机字串------------------------------------------------------------------------ 867
+	23. 字节格式化---------------------------------------------------------------------- 921
+	24. 正则是否UTF-8编码--------------------------------------------------------------- 942
+	24. 面包屑-------------------------------------------------------------------------- 1103
+	25. 索引改键------------------------------------------------------------------------ 1126
+	26. 获取网页当前URL----------------------------------------------------------------- 1146
+	27. 引入文件直接成为变量------------------------------------------------------------ 1180
+	28. 数据对接------------------------------------------------------------------------ 1288
+	29. 判断是否微信浏览器-------------------------------------------------------------- 1308
+	30. 测试运行时间-------------------------------------------------------------------- 1330
+
+ */
+/**
+  +---------------------------------------------------------------+
+ * curl选项
+ *
+ * 1.curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+ *	作用:去验证对方提供的（读取https）证书是否有效，过期，或是否通过CA颁发的！
+ *	在Windows下，curl找不到CA证书去验证对方的证书!也可用
+ *	curl_setopt($ch, CURLOPT_CAINFO, 'E:\path\to\curl-ca-bundle.crt');指定证书的位置。
+ * 	没有证书可到此处下载：http://curl.haxx.se/docs/sslcerts.html（待整理）
+  +---------------------------------------------------------------+
+ */
+
+/**
  +----------------------------------------------------------------+
  * 正则
  * 	/(\w|\.)*$/	分支匹配，该表达式能匹配 结尾处的所有\w或者.号
@@ -1010,14 +1400,14 @@ function is_utf8($string) {
   +---------------------------------------------------------------+
   * 普及常识
   *
-  * 	& 函数引用（一般用于递归）
+  * 1.	& 函数引用（一般用于递归）
   * 	@ 错误控制运算符（尽量不用）
   * 	file_get_contents(img_path);		读得二进制数据
   * 	header("Content-type: text/html; charset=utf-8");
   * 	constant()				返回一个常量的值。
-  * 	get_browser()				返回用户浏览器的性能。
+  * 2.	get_browser()				返回用户浏览器的性能。
   * 	highlight_file()			对文件进行语法高亮显示。
-  * 	php_strip_whitespace()			返回已删除 PHP 注释以及空白字符的源代码文件。
+  * 3.	php_strip_whitespace()			返回已删除 PHP 注释以及空白字符的源代码文件。
   * 	$_SERVER['REQUEST_URI'];		返回带参数的url
   *	ignore_user_abort(true);
   *	serialize — 产生一个可存储的值的表示。	想要将已序列化的字符串变回 PHP 的值，可使用 unserialize()
@@ -1026,49 +1416,11 @@ function is_utf8($string) {
   *		$currentURL = 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
   *	session_id();session_name();获取当前链接的session的ID和name
   *	_initialize	__construct()
+  *4.	ReflectionClass($class);类注释的获取
+  *	ReflectionMethod($class,$func);类里某函数注释到获取
+  *5.	substr(sprintf('%o', fileperms('e.zip')), -4)	取得文件权限
+  *	chmod						修改文件权限
+  *6.	set_time_limit(0);
   +---------------------------------------------------------------+
  */
 
-/**
-  +---------------------------------------------------------------+
- * curl选项
- *
- * 1.curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
- *	作用:去验证对方提供的（读取https）证书是否有效，过期，或是否通过CA颁发的！
- *	在Windows下，curl找不到CA证书去验证对方的证书!也可用
- *	curl_setopt($ch, CURLOPT_CAINFO, 'E:\path\to\curl-ca-bundle.crt');指定证书的位置。
- * 	没有证书可到此处下载：http://curl.haxx.se/docs/sslcerts.html（待整理）
-  +---------------------------------------------------------------+
- */
-
-
-/**
-目录	Table of Contents ¶
-	1.  输入过滤------------------------------------------------------------------------  13
-	2.  判断是否工作日------------------------------------------------------------------  32
-	3.  计算结束时间--------------------------------------------------------------------  63
-	4.  无限分类------------------------------------------------------------------------ 107
-	5.  多维数组转1维------------------------------------------------------------------- 138
-	6.  unicode编码--------------------------------------------------------------------- 163
-	7.  unidode解码--------------------------------------------------------------------- 194
-	8.  生成略缩图---------------------------------------------------------------------- 227
-	9.  仿js alert()-------------------------------------------------------------------- 317
-	10. 合并数组------------------------------------------------------------------------ 342
-	11. 字符与16进制互转---------------------------------------------------------------- 358
-	12. 获取客户端 ip------------------------------------------------------------------- 382
-	13. 纯真ip地址---------------------------------------------------------------------- 427
-	14. php汉字转拼音------------------------------------------------------------------- 576
-	15. eval 字符转任意----------------------------------------------------------------- 648
-	xx. 压缩/解压缩（见Class.zip.php）-------------------------------------------------- 000
-		https://github.com/153734009/experience
-	16. eval()-------------------------------------------------------------------------- 698
-	17. 带中文unicode json解json-------------------------------------------------------- 719
-	18. utf8编码字符串截取-------------------------------------------------------------- 746
-	19. 字符串截取---------------------------------------------------------------------- 826
-	20. 正则匹配全中文------------------------------------------------------------------ 126
-	21. 模拟页面浏览(cURL)-------------------------------------------------------------- 846
-	22. 随机字串------------------------------------------------------------------------ 867
-	23. 字节格式化---------------------------------------------------------------------- 921
-	24. 正则是否UTF-8编码--------------------------------------------------------------- 942
-	4.  无限分类------------------------------------------------------------------------ 126
- */

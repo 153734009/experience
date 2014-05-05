@@ -270,7 +270,7 @@ Number.prototype.floatDiv = function (arg){return floatDiv(this, arg);}
   | @return float
   +---------------------------------------------------------------+
  */
-function frequent_submit(url,method="post",data){
+function frequent_submit(url,method,data){
 	    var	f= document.createElement('form')
 		f.action = url;
 		f.method = method;
@@ -471,7 +471,7 @@ function frequent_2excel(id) {//整个表格拷贝到EXCEL中
   +---------------------------------------------------------------+
  * 14. 闭包函数（待整理）
   +---------------------------------------------------------------+	
-  | 不适用闭包的话，test2无法延迟
+  | 不使用闭包的话，test2无法延迟
   +---------------------------------------------------------------+	
  */
 function callLater(paramA, paramB, paramC){
@@ -496,6 +496,8 @@ test_2 = setTimeout(callLater(paramA, paramB, paramC),2000);
 /**
   +---------------------------------------------------------------+
  * 15. 子窗口操作父窗口
+ * 通常在使用window.opener的时候要去判断父窗口的状态，如果父窗口被关闭或者更新，
+ * 就会出错，解决办法是加上如下的验证 if(window.opener && !window.opener.closed)
   +---------------------------------------------------------------+	
  */
 
@@ -505,8 +507,95 @@ test_2 = setTimeout(callLater(paramA, paramB, paramC),2000);
 //	window.opener 实际上就是通过window.open打开的窗体的父窗体。
 //	window.opener.test(); ---调用父窗体中的test()方法
 
+/**
+  +---------------------------------------------------------------+
+ * 16. js重定向
+  +---------------------------------------------------------------+	
+ */
+	window.location.href="login.jsp?backurl="+window.location.href; 
+	window.history.back(-1); 
+        window.navigate("top.jsp"); 
+        self.location='top.htm'; 
+        top.location='xx.jsp'; 
+
+/**
+  +---------------------------------------------------------------+
+ * 17. 手机版的菜单，左侧pull出
+ * 对象化写法
+  +---------------------------------------------------------------+	
+ */	
+function MobileMenu(hook,target){
+	this.hook = $("#"+hook);
+	this.target = $("#"+target);
+	this.isshow = false;
+	this.menulist = $("#"+target+" li");
+	var self = this;
+	//在此绑定事件
+	this.hook.click(function(){
+		self.show();
+	});
+	this.menulist.click(function(){
+		//这里的this指向li元素，当然是这样好了
+		self.hook.html($(this).html());
+		self.show();
+	});
+	
+	if (typeof MobileMenu._initialized == "undefined") {
+		MobileMenu.prototype.show = function() {
+		       if(this.isshow){
+				this.target.animate({left:'-40%'});
+				this.isshow = false;
+			}else{
+				this.target.animate({left:'0%'});
+				this.isshow = true;
+			}
+		};
+		MobileMenu._initialized = true;
+	}
+}
+//var MobileMenu_school = new MobileMenu('school','schoolResult');
+//var MobileMenu_build = new MobileMenu('build','buildResult');
+
+/**
+  +---------------------------------------------------------------+
+ * 18. 动态绑定
+  +---------------------------------------------------------------+	
+ */
+// 事件绑定
+
+        this.bindHandler = (function() {
+            if (window.addEventListener) {// 标准浏览器
+                return function(elem, type, handler) {// elem:节点    type:事件类型   handler:事件处理程序
+                    // 最后一个参数为true:在捕获阶段调用事件处理程序    为false:在冒泡阶段调用事件处理程序
+                    elem.addEventListener(type, handler, false);
+                }
+            } else if (window.attachEvent) {// IE浏览器
+                return function(elem, type, handler) {
+                    elem.attachEvent("on" + type, handler);
+                }
+            }
+        })();
+
+        // 事件解除
+        this.removeHandler = (function() {
+            if (window.removeEventListerner) {// 标准浏览器
+                return function(elem, type, handler) {
+                    elem.removeEventListerner(type, handler, false);
+
+                }
+            } else if (window.detachEvent) {// IE浏览器
+                return function(elem, type, handler) {
+                    elem.detachEvent("on" + type, handler);
+                }
+            }
+        })();
 
 
+
+/*
+ * src 引用的不同播放器。会影响表现
+<embed src="http://www.ledidea.cn/statics/images/Flvplayer.swf" allowfullscreen="true" flashvars="vcastr_file=http://localhost/1.flv&amp;autostart=false" wmode="transparent" quality="high" style="float:left;width: 1420px;height:680px;">
+*/
 
 /**
  +----------------------------------------------------------------+
@@ -552,6 +641,7 @@ test_2 = setTimeout(callLater(paramA, paramB, paramC),2000);
 	12. 设置打印区域-------------------------------------------------------------------- 423
 	13. 表格导出excel------------------------------------------------------------------- 443
 	14. 闭包函数（待整理）-------------------------------------------------------------- 661
+	15. 子窗口操作父窗口---------------------------------------------------------------- 498	
 	
 
 	11. -------------------------------------------------------------------------------- 371

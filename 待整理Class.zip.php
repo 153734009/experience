@@ -64,6 +64,7 @@ function frequent_zip($path,$savedir,$zipname){
 		if (($file!='.')&&($file!='..')){
 			$path_sub = $path.'/'.$file;
 			$path_sub = ($path=='.') ? $file : $path.'/'.$file;
+			$path_sub = rtrim($path_sub, "/");
 			if(is_file($path_sub)){
 				echo($path_sub.date('Y-m-d H-i-s').'<br />');
 				$zip->addFile($path_sub);

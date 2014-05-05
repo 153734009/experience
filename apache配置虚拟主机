@@ -1,0 +1,28 @@
+/*
+  +-------------------------------------+
+  | 例子： www.pth.com访问 /wamp/www
+  +-------------------------------------+
+ */
+
+1.修改位于(win7)
+	c:/windows/system32/drivers/etc/目录下的hosts文件
+	增加一段：127.0.0.1    www.pth.com(你用来访问的域名)
+
+2.apache的httpd.conf
+	#Include conf/extra/httpd-vhosts.conf 去掉井号，开启配置
+
+3.apache的httpd.conf 配置允许从任何地方访问
+DocumentRoot "d:/wamp/www"
+<Directory "d:/wamp/www">
+     AllowOverride All
+     Order Deny,Allow
+     Allow from all
+</Directory>
+
+4.wamp/bin/apache/Apache2.2.11/conf/extra
+	增加
+	<VirtualHost *:80>
+	    DocumentRoot "D:/wamp/www"
+	    ServerName pth.com
+	    ServerAlias www.pth.com
+	</VirtualHost>

@@ -1,0 +1,2 @@
+ajax上传图片
+重点是 模板页里 使用iframe避免跳转，自建callback函数模拟ajax
