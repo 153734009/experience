@@ -1331,6 +1331,102 @@ function frequent_microtime_float(){
     return ((float)$usec + (float)$sec);
 }
 
+
+/**
+  +---------------------------------------------------------------+
+ * 31. 计算 今天的数组表示（mongo）
+ * frequent_today_array()
+  +---------------------------------------------------------------+	
+  | array('$gte'=>$start,'$lt'=>$end)
+  +---------------------------------------------------------------+	
+ */
+function frequent_today_array(){
+	$now = date('Y-m-d H:i:s',time());
+	$start = preg_replace("/\d\d:\d\d:\d\d$/",'00:00:00',$now);
+		$start = new MongoDate(strtotime($start));
+	$end =  preg_replace("/\d\d:\d\d:\d\d$/",'23:59:59',$now);
+		$end = new MongoDate(strtotime($end));
+	return array('$gte'=>$start,'$lt'=>$end);
+}
+/*
+	 * 返回比当前时间小的，最大系统分配时间点
+	 * 系统分配时间点在后台设置 System ：settime 
+	 */
+	function timeNode(){
+		$settime = include(APP_PATH.'/Common/Conf/settime.php'); 
+		sort($settime);//保证按时间顺序，重置键名
+		$count = count($settime);
+		$now = date('H:i',time());
+		//$now = '13:25';
+		for($i=0;$i<$count;$i++){
+			if($settime[$i] > $now){
+				$H = substr($settime[$i-1],0,2);
+				$m = substr($settime[$i-1],-2,2);
+				return(mktime($H,$m,0));
+			}
+		}
+		$H = substr($settime[$count-1],0,2);
+		$m = substr($settime[$count-1],-2,2);
+		return(mktime($H,$m,0));
+	}
+
+/**
+  +---------------------------------------------------------------+
+ * 32. fsockopen
+ * frequent_fsockopen
+  +---------------------------------------------------------------+	
+ *  parameters string	$host		ip 或者 域名
+ *  parameters integer	$port		请求端口
+ *  parameters string 	$page		请求的页面
+ *  parameters array 	$data		&a=a形式的字符串
+  +---------------------------------------------------------------+	
+  | @return $str		
+  |
+  | 33 .
+  | session_destroy();
+  | session_id($_POST['session_id']);
+  | session_start();
+  +---------------------------------------------------------------+
+ */
+function frequent_fsockopen($host, $port, $page, $data){
+	$data_str = '';
+	foreach ($data as $k=>$v){
+			$data_str .= '&'.$k.'='.$v; 
+	}
+	$fp = fsockopen($host, $port, $errno, $errstr, 30);
+	if($fp){
+			$content_length = strlen($data_str);
+			$header = "POST ".$page." HTTP/1.1\r\n";
+			$header .= "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:29.0) Gecko/20100101 Firefox/29.0\r\n";
+			$header .= "Accept:	*/*\r\n";
+			$header .= "Content-Type: application/x-www-form-urlencoded; charset=UTF-8\r\n";
+			$header .= "Host: ".$host."\r\n";
+			$header .= "Content-Length: ".$content_length."\r\n";
+			$header .= "Connection: Close\r\n\r\n";
+			$header .= $data_str."\r\n\r\n";
+
+		stream_set_blocking($fp,1);//0 非阻塞 1 阻塞;其实我觉得是while了就阻塞，fwrite完关闭 就不阻塞
+		fwrite($fp, $header);
+		fclose($fp); 
+//		$inheader = 1; 
+//		$str = '';
+//		while (!feof($fp)) {
+//			$line = fgets($fp,1024);//默认也是1k
+//			//去掉请求包的头信息
+//			//if ($inheader && ($line == "\n" || $line == "\r\n")) {
+//			if ($inheader && ($line == "bbbb" || $line == "\r\n")) {
+//				$inheader = 0;
+//			}
+//			if ($inheader == 0) {
+//				$str .= $line;
+//			}
+//		}
+//		fclose($fp);
+//		return $str;
+	}
+}
+
+
 /**
  * 随着代码的修改，页面会出错
  *
@@ -1369,6 +1465,7 @@ function frequent_microtime_float(){
 	28. 数据对接------------------------------------------------------------------------ 1288
 	29. 判断是否微信浏览器-------------------------------------------------------------- 1308
 	30. 测试运行时间-------------------------------------------------------------------- 1330
+	33. 使用session_id();启用同一session------------------------------------------------ 1330
 
  */
 /**

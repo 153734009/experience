@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Demo</title>
+	<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+</head>
+<body>
+	<input type="button" value="计算">
+	音频长度：<p></p>
+	<audio controls="controls">
+		<source src="" type="audio/mpeg">
+	</audio>
+<script>
+function changeAudio(){
+	$("source")[0].src = "audio.mp3";
+	$("audio")[0].load();
+	$("audio")[0].addEventListener("durationchange", function(){
+			$("p").html($("audio")[0].duration);
+		});
+}
+$(document).ready(function(){
+	$("input").click(function(){
+		changeAudio();
+	});
+});
+</script>
+</body>
+</html>

@@ -275,7 +275,7 @@ function frequent_submit(url,method,data){
 		f.action = url;
 		f.method = method;
 		document.body.appendChild(f);
-	eval ("var data = {"+data+"}");
+	eval ("var data = {"+data+"}");//如果data 直接是对象，直接去掉次句
 	for(var key in data){  
 	    if(typeof data[key]  === 'string'||'number'){
 		    var temp=document.createElement('input');
@@ -590,8 +590,57 @@ function MobileMenu(hook,target){
             }
         })();
 
+/**
+  +---------------------------------------------------------------+
+ * 19. 通用型的数据 修改表单 读取 写入
+  +---------------------------------------------------------------+	
+ */
+	function frequent_modify(arr,obj){
+		this.hook = $("[data-jshook='"+arr[0]+"']");
+		this.target = $("[data-jstarget='"+arr[1]+"']");
+		var self = this;//用一个变量存自己
+		//在此绑定事件
+		this.hook.click(function(){
+			var form_elements = self.target.find("form").find("[name]");
+			form_elements = $.makeArray(form_elements);
+			for(key in obj){
+				var element = self.target.find("[data-jsreceive='"+obj[key]+"']")[0];
+				//element = document.createElement('input'); 验证不在数组中 会返回-1
+				if(-1 == form_elements.indexOf(element)){
+					self.target.find("[data-jsreceive='"+obj[key]+"']").html($(this).data(key));
+				}else{
+					self.target.find("[data-jsreceive='"+obj[key]+"']").val($(this).data(key));
+				};
+			}
+		});
+	}
+var jsmodify4 = new frequent_modify(Array("4","4"),{"title":"title","_id":"_id","pid":"pid"});	
 
-
+/**
+  +---------------------------------------------------------------+
+ * 20. clone对象(复制)
+  +---------------------------------------------------------------+	
+ */
+Object.prototype.Clone = function(){
+    var objClone;
+    if (this.constructor == Object){
+        objClone = new this.constructor(); 
+    }else{
+        objClone = new this.constructor(this.valueOf()); 
+    }
+    for(var key in this){
+        if ( objClone[key] != this[key] ){ 
+            if ( typeof(this[key]) == 'object' ){ 
+                objClone[key] = this[key].Clone();
+            }else{
+                objClone[key] = this[key];
+            }
+        }
+    }
+    objClone.toString = this.toString;
+    objClone.valueOf = this.valueOf;
+    return objClone; 
+} 
 /*
  * src 引用的不同播放器。会影响表现
 <embed src="http://www.ledidea.cn/statics/images/Flvplayer.swf" allowfullscreen="true" flashvars="vcastr_file=http://localhost/1.flv&amp;autostart=false" wmode="transparent" quality="high" style="float:left;width: 1420px;height:680px;">
@@ -601,6 +650,8 @@ function MobileMenu(hook,target){
  +----------------------------------------------------------------+
  * 正则
  * 	1.匹配全中文		/^[\u4e00-\u9fa5]+$/
+ * 	2.匹配文件名		/[^\\\/]*$/	
+ *		例： "http://127.0.0.1/Material/voice.js".match(/[^\\\/]*$/)
  * 
  +----------------------------------------------------------------+
  */

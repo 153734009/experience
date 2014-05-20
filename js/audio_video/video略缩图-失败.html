@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Demo</title>
+	<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+</head>
+<body>
+<video id="video" controls="controls">
+    <source src="video.mp4" />
+</video>
+<button id="capture">Capture</button>
+<div id="output"></div>
+<canvas id="myCanvas" width="200" height="176" style="border:1px solid #c3c3c3;">
+Your browser does not support the canvas element.
+</canvas>
+<script>
+(function(){
+	var video,target;
+	var scale = 1;
+	var initialize = function() {
+		target = $("#output");
+		video = $("#video")[0];
+		$("#capture").click(captureImage);
+	}
+	var captureImage = function() {
+		var canvas = document.createElement("canvas");
+		canvas.width = video.videoWidth * scale;
+		canvas.height = video.videoHeight * scale;
+		alert(canvas.width);
+		return false;
+//	var img=new Image();
+//	img.src="http://w3school.com.cn/i/eg_flower.png";
+//	$("#myCanvas")[0].getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+		canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+		alert(canvas.toDataURL());
+		return false;
+		var img = document.createElement("img");
+		img.src = canvas.toDataURL();
+		alert(img.src);
+		$output.prepend(img);
+	};
+	
+	$(initialize);
+}());
+
+</script>
+</body>
+</html>

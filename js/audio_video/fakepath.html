@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Demo</title>
+</head>
+<body>
+	<audio id="audio" controls="controls" style="display:none0;" data="audio-duration-container">
+		<source src="" type="audio/mpeg" id="source">
+	</audio>
+	<br />
+	<input type="file" onchange="file_url(this)">
+	<div id="div">xx</div>
+<script>
+function file_url(obj){
+	var file = obj.files[0];
+	var reader = new FileReader();
+	reader.onload = function(e){
+
+		document.getElementById("source").src = e.target.result;
+		document.getElementById("div").innerHTML = e.target.result.substr(0,22);
+		document.getElementById("audio").load();
+	}
+	reader.readAsDataURL(file);  
+	//reader.readAsBinaryString(file);
+	//reader.readAsText(file);
+}
+</script>
+</body>
+</html>

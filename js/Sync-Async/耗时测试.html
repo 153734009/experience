@@ -1,0 +1,63 @@
+<!doctype html>
+<html dir="ltr" lang="zh-CN">
+  <head>
+    <meta charset="utf-8"/>
+    <title>类</title>
+    <script type="text/javascript" charset="utf-8">
+	window.onload = function(){
+		for (var i=0, elm; i<4000; i++) {
+			elm = document.createElement("div");
+			elm.innerHTML = "第一重div<div>第二重div<div>第三重div</div></div>";
+			document.body.appendChild(elm);
+		}
+	document.getElementById("start-test").onclick = startTest;
+		var uuid = 0;
+		function startTest() {
+			var divs = document.getElementsByTagName("div");
+			var time1 = new Date();
+			var i = -1, n = divs.length;while (++i < n) { 
+				divs[i].uuid = uuid++;
+			}
+			document.getElementById("time-1").innerHTML = new Date() - time1;
+			var time7 = new Date();
+			for(var i=0,el;el = divs[i++];){
+				el.uuid = uuid++;
+			};
+			document.getElementById("time-7").innerHTML = new Date() - time7;
+		}
+	}
+    </script>
+  </head>
+  <body>
+    <style>
+      h2 {
+        margin:0;
+        padding:10px;
+        font-weight:500;
+        font-size:13px;
+        background:#8080C0;
+        color:#fff;
+      }
+      p {
+        margin:0;
+        text-indent:2em;
+        border-bottom:2px solid #a9ea00;
+        background:#F2F1D7;
+      }
+      span.red{
+        color:red;
+      }
+    </style>
+    <h1>JavaScript loop speed test</h1>
+    <ul>
+      <li>遍历页面上12000个DIV</li>
+    </ul>
+    <input id="start-test" type="button" value="Start test">
+    <h2>循环1： var i = -1, n = divs.length;while (++i < n) { }<span class="red">顺序</span></h2>
+    <p id="time-1"></p>
+
+    <h2>循环7：  for(var i=0,el;el = divs[i++];){ } <span class="red">顺序</span></h2>
+    <p id="time-7"></p>
+  </body>
+</html>
+

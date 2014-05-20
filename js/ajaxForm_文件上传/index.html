@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Demo</title>
+	<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+	<script src="jquery.form.js"></script>
+</head>
+<body>
+<form action="t.php" method="post"  enctype="multipart/form-data">
+	<input type="text" name="title"><br />
+	<input type="file" name="file"><br />
+	<input type="submit">
+</form>
+<script>
+$(document).ready(function() { 
+            $("form").ajaxForm(function(data) { 
+		    alert(data);
+            }); 
+        }); 
+</script>
+</body>
+</html>

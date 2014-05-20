@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Demo</title>
+</head>
+<body>
+<div>同步：<span id="output_Sync"></span></div>
+<div>异步：<span id="output_Async"></span></div>
+<script>
+function updateSync(){
+    for (var i= 0; i < 1000; i++) {
+        document.getElementById('output_Sync').innerHTML = i;
+    }
+}
+function updateAsync(){
+	var i= 0;
+	function updateLater(){
+		document.getElementById('output_Async').innerHTML= (i++);
+		if (i< 1000) {
+		    setTimeout(updateLater,0);
+		}
+	}
+    updateLater();
+}
+updateSync();
+updateAsync();
+</script>
+</body>
+</html>
