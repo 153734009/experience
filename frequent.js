@@ -672,6 +672,7 @@ Object.prototype.Clone = function(){
   *		setTimeout和php sleep不同，它只延迟自身代码的执行，后面的代码会首先执行
   *		可以用clearTimeout(t)清除指定的
   * 4. 函数内部声明变量的时候，一定要使用var命令。如果不用的话，你实际上声明了一个全局变量！
+  * 5. .prop('outerHTML') jquery 用这个来获取outerHTML
   +---------------------------------------------------------------+
  */
 

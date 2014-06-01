@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html lang="zh_CN">
+	<head>
+		<link href="../3.1.1/css/bootstrap.css" rel="stylesheet" />
+		<link href="colorpicker.css" rel="stylesheet" />
+	</head>
+	<body style="width:500px;margin:20px auto;">
+
+		<div class="input-group input-group-sm color" data-form="colorpicker" data-color="rgba(255,146,180,1)" data-color-format="rgba">
+			<input type="text" class="form-control"  value="">
+			<span class="input-group-addon">
+				<i style="background-color: rgb(255, 146, 180)"></i>
+			</span>
+		</div>
+		
+
+		<script src="../jquery-1.11.1.js"></script>
+		<script src="bootstrap-colorpicker.js"></script>
+		<script>
+			$('[data-form=colorpicker]').colorpicker();	
+		</script>
+	</body>
+</html>

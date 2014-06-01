@@ -1,0 +1,21 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+<script type="text/javascript">
+ window.onload=function(){
+    function resizeIframe(newHeight){
+      document.getElementById('frame').style.height = parseInt(newHeight) + 'px';
+    }
+    
+    window.onload = resizeIframe(window.innerHeight - $('#frame_tips').outerHeight(false));
+   };
+ </script>
+ </head>
+
+ <body style="margin:0;">
+ <h1>iframe自适应高度</h1>
+  <div id="frame_tips2" style="height:200px;">
+
+  </div>
+  <iframe id="frame" name="frame" frameborder="0" width="100%" scrolling="no" height="auto" style="margin:0;padding:0;border:0;" src="http://www.baidu.com"></iframe>
+ </body>
