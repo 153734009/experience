@@ -868,6 +868,44 @@ function frequent_simple_json_parser($json){
 }
 /**
   +---------------------------------------------------------------+
+ * 17.
+ |	反解unicode中文
+ |	注意，在某些系统上 iconv 函数可能无法以你预期的那样工作
+ |	hexdec(bin2hex( $bin_unichar ));//$c 是unicode字符编码的int类型数值，如
+ |	果是用二进制读取的数据，需要多一步转化
+ +---------------------------------------------------------------+
+ */
+
+function frequent_unicode_decode_json($str){
+	if (!function_exists('conv')){
+		function conv($arr){
+		//////////////////////////////////////////////////////////////////////////////////
+		//	$code_1 = base_convert(substr($arr[0],2,2),16,10);//16进制转10进制	//
+		//	$code_2 = base_convert(substr($arr[0], 4), 16, 10);			//
+		//	$c = chr($code_1).chr($code_2);						//
+		//	$c = iconv('UCS-2','UTF-8',$c);						//
+		//////////////////////////////////////////////////////////////////////////////////
+			$c= hexdec($arr[1]);
+			if ($c < 0x80){
+				$utf8char = chr($c);
+			}else if ($c < 0x800){
+				$utf8char = chr(0xC0 | $c >> 0x06).chr(0x80 | $c & 0x3F);
+
+			}else if ($c < 0x10000){
+				$utf8char = chr(0xE0 | $c >> 0x0C).chr(0x80 | $c >> 0x06 & 0x3F).chr(0x80 | $c & 0x3F);
+
+			}else{//因为UCS-2只有两字节，所以后面的情况是不可能出现的，这里只是说明unicode HTML实体编码的用法。
+				$utf8char = "&#{$c};";
+			}
+			return $utf8char;
+		}
+	}
+	$str = preg_replace_callback("/\\\u([\w]{4})/",conv,$str);
+	return $str;
+}
+
+/**
+  +---------------------------------------------------------------+
  * 18. utf8编码字符串截取
  * frequent_utf_substr($str,$len,$nextstr="...");
   +---------------------------------------------------------------+	
@@ -1484,11 +1522,13 @@ function frequent_fsockopen($host, $port, $page, $data){
  +----------------------------------------------------------------+
  * 正则
  * 	/(\w|\.)*$/	分支匹配，该表达式能匹配 结尾处的所有\w或者.号
- * 	1.分组后向引用：	preg_replace('/(\w+), (\w+)/',"$2, $1",'Doe, John')
- *	2.单词边界：  		preg_match("/\bweb\b/i", "PHP is the web scripting language of choice.")
- *	2.0宽断言：		preg_match('/(?<= filter=").*?(?=")/', 'cat="1" filter="status=1"', $matches); 
- * 	4.匹配全中文		preg_match("/^[\x{4e00}-\x{9fa5}]+$/u",$str);
+ * 	1.分组后向引用：		preg_replace('/(\w+), (\w+)/',"$2, $1",'Doe, John')
+ *	2.单词边界：			preg_match("/\bweb\b/i", "PHP is the web scripting language of choice.")
+ *	2.0宽断言：				preg_match('/(?<= filter=").*?(?=")/', 'cat="1" filter="status=1"', $matches); 
+ * 	4.匹配全中文			preg_match("/^[\x{4e00}-\x{9fa5}]+$/u",$str);
  * 	5.将 URL 替换为超连接	$text = ereg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]","<a href=\"\\0\">\\0</a>", $text);
+ * 	6.同时取出空格 换行		preg_replace('/((\s)*(\n)+(\s)*)/i', '', strip_tags( $_POST['content'] ));
+ * 	7.匹配最后文件夹		$str = dirname(__FILE__);	preg_match ('/\w*$/', $str, $match);
  *
  +----------------------------------------------------------------+
  */
@@ -1518,6 +1558,13 @@ function frequent_fsockopen($host, $port, $page, $data){
   *5.	substr(sprintf('%o', fileperms('e.zip')), -4)	取得文件权限
   *	chmod						修改文件权限
   *6.	set_time_limit(0);
+
+  *7.	$HTTP_RAW_POST_DATA; ~file_get_contents("php://input");
+
+  *8.	301重定向
+		Header("HTTP/1.1 301 Moved Permanently");
+		Header("Location: http://www.baidu.com");
   +---------------------------------------------------------------+
+
  */
 

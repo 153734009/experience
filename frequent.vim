@@ -40,3 +40,10 @@ let i=0 | g/toPlaced/s//\=i/ |let i=i+1
 "10. 宏录制（调用 6@a ）
 	qa 动作 q 
 	qa dw j q	=>	6@a
+
+"11 换行符
+	\r => ^M
+	:%s/\n\n/\r/g "连续的两个空行替换成一个空行
+
+"12 <list mode>
+	:set list	 :set nolist "可以清楚的看到以“$”表示的换行符和以“^I”表示的制表符

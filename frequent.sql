@@ -190,9 +190,6 @@ update gh_menu set url = REPLACE(`url`,'pth.eweiwei.com','www.pth-express.com')
 SELECT wz020_sites_article.*,wz020_sites_category.name as category FROM `wz020_sites_article` LEFT JOIN wz020_sites_category on wz020_sites_article.category=wz020_sites_category.id WHERE ( `category` IN ('9','makeItems2') )
 
 
-
-
-
 /*待整理*/select `goods_id` as id,`goods_name` as name,`shop_price` as price,IF(`promote_price`=0,`shop_price`,`promote_price`) as special_price,TRUNCATE(IF(`promote_price`=0,`shop_price`,`promote_price`)/`shop_price`,2) as rebate, `goods_img` as filename,`brand_id`,`cat_id`,`is_real` as recommend,`is_new` as status_1,`is_hot` as status_2,IF(`goods_number`>0,0,1) as status_4,`click_count` as ob_1 from ".$prefix."goods where `is_on_sale`=1 and `is_alone_sale`=1 and `is_delete`=0 ;
 /*left join*/ select g.*,og.sales from (select `goods_id` as id,`goods_name` as name,`shop_price` as price,IF(`promote_price`=0,`shop_price`,`promote_price`) as special_price,TRUNCATE(IF(`promote_price`=0,`shop_price`,`promote_price`)/`shop_price`,2) as rebate, `goods_img` as filename,`brand_id`,`cat_id`,`is_real` as recommend,`is_new` as status_1,`is_hot` as status_2,IF(`goods_number`>0,0,1) as status_4,`click_count` as ob_1 from syk_goods where `is_on_sale`=1 and `is_alone_sale`=1 and `is_delete`=0 ) as g left join (select SUM(`goods_number`) as sales,`goods_id` as id from syk_order_goods group by `goods_id`) as og on g.id=og.id
 /*right join*/ select IFNULL(s.sales,0) as sales,g.* from (select SUM(`goods_number`) as sales,`goods_id` as id from syk_order_goods group by `goods_id`) as s right join (select `goods_id` as id,`goods_name` as name,`shop_price` as price,IF(`promote_price`=0,`shop_price`,`promote_price`) as special_price,TRUNCATE(IF(`promote_price`=0,`shop_price`,`promote_price`)/`shop_price`,2) as rebate, `goods_img` as filename,`brand_id`,`cat_id`,`is_real` as recommend,`is_new` as status_1,`is_hot` as status_2,IF(`goods_number`>0,0,1) as status_4,`click_count` as ob_1 from syk_goods where `is_on_sale`=1 and `is_alone_sale`=1 and `is_delete`=0 ) as g on g.id=s.id
@@ -235,6 +232,24 @@ select COLUMN_NAME from information_schema.columns where table_name='w_sites'
  */
 $auto_increment = M()->query('SHOW TABLE STATUS where name="w_sites_category"');
 $auto_increment = $auto_increment[0]['Auto_increment'];
+
+/**
+  +-----------------------------------------+
+ * 21.每个分类一条记录
+		这里巧妙的运用了count()函数会返回一条记录，而且是相同类型记录中的第一条记录的特点
+  +-----------------------------------------+
+ */
+select *,count(distinct `category`) from `w_sites_product` group by `category`
+
+/**
+  +-----------------------------------------+
+ * 22.最新的5条记录，但是栏目必须不同
+  +-----------------------------------------+
+ */
+SELECT  * FROM `w_sites_product` main WHERE	NOT EXISTS( SELECT 1 FROM  `w_sites_product`  sub  WHERE  main.`category` = sub.`category` AND  main.`createtime` < sub.`createtime`)	ORDER BY  `createtime` DESC LIMIT 5
+
+
+
 /**
   +---------------------------------------------------------------+
   * 普及常识
@@ -261,6 +276,11 @@ $auto_increment = $auto_increment[0]['Auto_increment'];
 	3.  表结构查询----------------------------------------------------------------------  064
 	4.  ISNULL NULLIF IFNULL------------------------------------------------------------  076
 	5.  创建触发器  存储过程------------------------------------------------------------  093
+	9.  优化limit offset----------------------------------------------------------------  131
+	10.	SCOPE_IDENTITY、IDENT_CURRENT 和 @@IDENTITY-------------------------------------  141
+	21. 每个分类一条记录----------------------------------------------------------------  241
+	22.	最新的5条记录，但是栏目必须不同---------------------------------------------------  246
+	9.  优化limit offset----------------------------------------------------------------  131
 	9.  优化limit offset----------------------------------------------------------------  131
 
 
