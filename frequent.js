@@ -498,6 +498,7 @@ test_2 = setTimeout(callLater(paramA, paramB, paramC),2000);
  * 15. 子窗口操作父窗口
  * 通常在使用window.opener的时候要去判断父窗口的状态，如果父窗口被关闭或者更新，
  * 就会出错，解决办法是加上如下的验证 if(window.opener && !window.opener.closed)
+ *		iframe 内容的获取
   +---------------------------------------------------------------+	
  */
 
@@ -506,6 +507,11 @@ test_2 = setTimeout(callLater(paramA, paramB, paramC),2000);
 	window.location.reload();
 //	window.opener 实际上就是通过window.open打开的窗体的父窗体。
 //	window.opener.test(); ---调用父窗体中的test()方法
+	$(window.frames["if_library"].document).find("#tiles");
+
+	function callParent() { 
+		parent.func(); 
+	} 
 
 /**
   +---------------------------------------------------------------+
@@ -561,34 +567,33 @@ function MobileMenu(hook,target){
  * 18. 动态绑定
   +---------------------------------------------------------------+	
  */
-// 事件绑定
+	// 事件绑定
+	this.bindHandler = (function() {
+		if (window.addEventListener) {// 标准浏览器
+			return function(elem, type, handler) {// elem:节点    type:事件类型   handler:事件处理程序
+				// 最后一个参数为true:在捕获阶段调用事件处理程序    为false:在冒泡阶段调用事件处理程序
+				elem.addEventListener(type, handler, false);
+			}
+		} else if (window.attachEvent) {// IE浏览器
+			return function(elem, type, handler) {
+				elem.attachEvent("on" + type, handler);
+			}
+		}
+	})();
 
-        this.bindHandler = (function() {
-            if (window.addEventListener) {// 标准浏览器
-                return function(elem, type, handler) {// elem:节点    type:事件类型   handler:事件处理程序
-                    // 最后一个参数为true:在捕获阶段调用事件处理程序    为false:在冒泡阶段调用事件处理程序
-                    elem.addEventListener(type, handler, false);
-                }
-            } else if (window.attachEvent) {// IE浏览器
-                return function(elem, type, handler) {
-                    elem.attachEvent("on" + type, handler);
-                }
-            }
-        })();
+	// 事件解除
+	this.removeHandler = (function() {
+		if (window.removeEventListerner) {// 标准浏览器
+			return function(elem, type, handler) {
+				elem.removeEventListerner(type, handler, false);
 
-        // 事件解除
-        this.removeHandler = (function() {
-            if (window.removeEventListerner) {// 标准浏览器
-                return function(elem, type, handler) {
-                    elem.removeEventListerner(type, handler, false);
-
-                }
-            } else if (window.detachEvent) {// IE浏览器
-                return function(elem, type, handler) {
-                    elem.detachEvent("on" + type, handler);
-                }
-            }
-        })();
+			}
+		} else if (window.detachEvent) {// IE浏览器
+			return function(elem, type, handler) {
+				elem.detachEvent("on" + type, handler);
+			}
+		}
+	})();
 
 /**
   +---------------------------------------------------------------+
@@ -621,26 +626,270 @@ var jsmodify4 = new frequent_modify(Array("4","4"),{"title":"title","_id":"_id",
  * 20. clone对象(复制)
   +---------------------------------------------------------------+	
  */
-Object.prototype.Clone = function(){
-    var objClone;
-    if (this.constructor == Object){
-        objClone = new this.constructor(); 
-    }else{
-        objClone = new this.constructor(this.valueOf()); 
-    }
-    for(var key in this){
-        if ( objClone[key] != this[key] ){ 
-            if ( typeof(this[key]) == 'object' ){ 
-                objClone[key] = this[key].Clone();
-            }else{
-                objClone[key] = this[key];
-            }
-        }
-    }
-    objClone.toString = this.toString;
-    objClone.valueOf = this.valueOf;
-    return objClone; 
-} 
+	Object.prototype.Clone = function(){
+		var objClone;
+		if (this.constructor == Object){
+			objClone = new this.constructor(); 
+		}else{
+			objClone = new this.constructor(this.valueOf()); 
+		}
+		for(var key in this){
+			if ( objClone[key] != this[key] ){ 
+				if ( typeof(this[key]) == 'object' ){ 
+					objClone[key] = this[key].Clone();
+				}else{
+					objClone[key] = this[key];
+				}
+			}
+		}
+		objClone.toString = this.toString;
+		objClone.valueOf = this.valueOf;
+		return objClone; 
+	} 
+
+/**
+  +---------------------------------------------------------------+
+ * 21. host,域名
+ * 请注意 match[1]
+  +---------------------------------------------------------------+	
+ */
+	function getHost(url){
+		url = url ? url : window.location.href;
+		var match = url.match(/(.*\:\/\/)([^\/|:]*).*/);
+		return match[2];
+	}
+
+/**
+ * 22 为 未来 绑定
+ * ============================================================================	
+ * 请注意：
+ *		放在$(function(){})里才有效 
+ */
+	$(function(){
+		$(document).on("click", "[data-eweiwei='delete']", function(){ 
+			var url = $(this).data("action"),
+				pa = $(this).closest($(this).data("parent"));
+				$.get(url);
+				pa.remove();
+		}); 
+	})
+
+/** 23. confirm为 未来 绑定
+ * ============================================================================	
+ */
+	<a class="pBtn" onclick="return confirm('确认删除？')" >删除</a>
+	$(".pBtn").click(function(){
+		if ( !confirm('确认发布？') ){
+			return false;
+		}
+		var url = $(this).data("action");
+		alert(url);
+	})
+
+/** 24. 获取计算后的样式
+ * ============================================================================	
+ */
+	function frequent_finalStyle(obj, name) {
+		if(obj.currentStyle){//IE 未详细测试
+			return obj.currentStyle[name];
+		}else{//标准浏览器
+			return getComputedStyle(obj, false)[name]; 
+		}
+	}
+
+/** 25. 载入html5本地数据（未完善）
+ * ==============================
+ */
+/*
+  +---------------------------------------------------------------+	
+	读入本地存储的数据
+  +---------------------------------------------------------------+	
+  |	//在文档的最后，把本地存储的数据返回到相应的表单位置
+  |	//数据写回页面是个噩梦，如果只是 对应表单的 name value  当然方便，
+  |	//但是需要修改文档结构 
+  +---------------------------------------------------------------+	
+ */
+	function loadHTML5Data() {
+		for (var str in localStorage) {
+			eval("var data=" + localStorage[str]);
+			var form = $("form[name='" + str + "']");
+			//str = "product"
+			for (var key in data) {
+				form.find("[name='" + key + "']").each(function(){
+					switch(this.type){
+					//	case  'checkbox':
+					//		//判读它的值 是否在html5 data 中，含逗号
+					//		if(data[key].indexOf(this.value+',') != -1){
+					//			this.checked = true;
+					//		}else{
+					//			this.checked = false;
+					//		};
+					//		break;
+						default:
+							this.value = data[key];
+					}
+				});
+				//考虑数组形式的值
+				form.find("[name='" + key + "[]']").each(function(){
+					switch(this.type){
+						case  'checkbox':
+							//判读它的值 是否在html5 data 中，含逗号
+							if(data[key].indexOf(this.value+',') != -1){
+								this.checked = true;
+							}else{
+								this.checked = false;
+							};
+							break;
+						default:
+							this.value = data[key];
+					}
+				});
+				// product 是使用在product_index页面的数据
+				if (key == "img") {
+					var arr = data[key];
+					var str = "";
+					for (i in arr) {
+						var url = arr[i].url;
+						str += '<li class="span2 hoverable cur_move" title="可拖动为产品图片排序"><div class="hover-ctrl"><em></em><a class="btn" href="' + url + '" target="_blank" title="预览产品图"><i class="icofont-eye-open"></i></a><a class="btn btn-warning  jslocal-delete-li" title="删除产品图"><i class="icofont-remove"></i></a></div><div class="thumbnail"><img class="img-responsive" src="' + url + '"></div><input type="text" name="image[]" value="' + url + '" style="display:none;"></li>';
+					}
+					$("#js-html5data-product-img").append(str);
+				}
+			}
+		}
+		//动态写入文档结构之后，需要bindJSLocalDeleteLi再绑定
+		//动态写入文档结构之后，需要select2再绑定
+		bindJSLocalDeleteLi();
+		$('[data-form=tags]').select2({tags:[]});
+	};
+	function loadHTML5Data() {
+		for (var str in localStorage) {
+			eval("var data=" + localStorage[str]);
+			var form = $("form[name='" + str + "']");
+			//str = "product"
+			for (var key in data) {
+				form.find("[name='" + key + "']").each(function(){
+					switch(this.type){
+					//	case  'checkbox':
+					//		//判读它的值 是否在html5 data 中，含逗号
+					//		if(data[key].indexOf(this.value+',') != -1){
+					//			this.checked = true;
+					//		}else{
+					//			this.checked = false;
+					//		};
+					//		break;
+						default:
+							this.value = data[key];
+					}
+				});
+				//考虑数组形式的值
+				form.find("[name='" + key + "[]']").each(function(){
+					switch(this.type){
+						case  'checkbox':
+							//判读它的值 是否在html5 data 中，含逗号
+							if(data[key].indexOf(this.value+',') != -1){
+								this.checked = true;
+							}else{
+								this.checked = false;
+							};
+							break;
+						default:
+							this.value = data[key];
+					}
+				});
+				// product 是使用在product_index页面的数据
+				if (key == "img") {
+					var arr = data[key];
+					var str = "";
+					for (i in arr) {
+						var url = arr[i].url;
+						str += '<li class="span2 hoverable cur_move" title="可拖动为产品图片排序"><div class="hover-ctrl"><em></em><a class="btn" href="' + url + '" target="_blank" title="预览产品图"><i class="icofont-eye-open"></i></a><a class="btn btn-warning  jslocal-delete-li" title="删除产品图"><i class="icofont-remove"></i></a></div><div class="thumbnail"><img class="img-responsive" src="' + url + '"></div><input type="text" name="image[]" value="' + url + '" style="display:none;"></li>';
+					}
+					$("#js-html5data-product-img").append(str);
+				}
+			}
+		}
+		//动态写入文档结构之后，需要bindJSLocalDeleteLi再绑定
+		//动态写入文档结构之后，需要select2再绑定
+		bindJSLocalDeleteLi();
+		$('[data-form=tags]').select2({tags:[]});
+	};
+//	loadHTML5Data();
+
+/**
+ * 26. 统一的html5本地数据库存储方法
+ * ====================================
+ | 	eval ("jsdata = "+jsdata+";");
+ | 	{type:'localStorage',variable:'product'}
+ |		localStorage.clear();
+ |		localStorage.removeItem("product");
+ |		localStorage.setItem(jsdata.variable,{});
+ +---------------------------------------------------------------+	
+ */
+function addHTML5Data(key, obj) {
+	if (key && obj) {
+		var data_str = localStorage[key];
+
+		if (typeof(data_str) == 'undefined') {
+			data = {}
+		} else {
+			eval("var data=" + data_str);
+		}
+		for (k in obj) {
+			data[k] = obj[k];
+		}
+		var data_str = JSON.stringify(data);
+		localStorage[key] = data_str;
+	}
+}
+function openHTML5Data(){
+		$(".js-storage").change(function() {
+			//判断是否checkedbox
+			if(this.type == 'checkbox'){
+				//var name = $(this).closest("ul.js-rule-list").attr("data");
+				var name = $(this).attr("name");
+				var checked = $(this).closest("ul.js-rule-list").find(":checked");
+				var str= '';
+				checked.each(function(index,element){
+					str += element.value+',';//这里的this 是具体的checked 的 input 	
+				});
+				//str = str.substr(0,str.length-1);
+				//存入html5数据库不要去掉结尾的 "," ，留着后面判断有用
+				var obj = {};
+				obj[name] = str;
+				var key = $(this).closest(".js-html5data-key").data("key");
+				addHTML5Data(key, obj);
+			}else{
+				var key = $(this).closest(".js-html5data-key").data("key");
+				var obj = {};
+				obj[$(this).attr("name")] = $(this).val();
+				addHTML5Data(key, obj);
+			}
+		});
+	}
+/**
+ * 27. 全选按钮
+ * data-eweiwei="checkAll"
+ * ====================================
+ */
+$("[data-eweiwei='checkAll']").click(function(){
+	var pa = $(this).closest($(this).data("wrap")),
+		meStatus = $(this).attr("checked");
+		if (meStatus == 'checked'){
+			$(this).attr("checked",false);
+			pa.find("tbody :checkbox:checked").click();
+		}else{
+			$(this).attr("checked",true);
+			pa.find("tbody :checkbox:not(:checked)").click();
+		}	
+})
+
+/**
+ * 28. 同源 iframe 内结构
+ * contents()
+ * ====================================
+ */
+var form = $("iframe").contents().find("form");
+
 /*
  * src 引用的不同播放器。会影响表现
 <embed src="http://www.ledidea.cn/statics/images/Flvplayer.swf" allowfullscreen="true" flashvars="vcastr_file=http://localhost/1.flv&amp;autostart=false" wmode="transparent" quality="high" style="float:left;width: 1420px;height:680px;">
@@ -652,6 +901,17 @@ Object.prototype.Clone = function(){
  * 	1.匹配全中文		/^[\u4e00-\u9fa5]+$/
  * 	2.匹配文件名		/[^\\\/]*$/	
  *		例： "http://127.0.0.1/Material/voice.js".match(/[^\\\/]*$/)
+ *	3.匹配后缀名
+ *		例："C:\fakepath\test.eweiwei.com.jpg".match(/[^\\\.]*$/)
+ *		index = value.lastIndexOf(".");suffix = value.substring(index+1);
+ *	4.匹配域名
+ *		window.location.href.match(/(.*\:\/\/)([^\/|:]*).* /);
+ *	5.电话号码
+ *		new RegExp("^[0-9]{3,4}[ -]{0,1}[0-9]{7,8}$")
+ *	  手机号码（支持  131 2939 0972的带空格写法）
+ *		/^1[^1267][0-9][ ]?[0-9]{4}[ ]?[0-9]{4}$/ 
+ *	  身份证
+ *		(^[0-9]{15}$|^[0-9]{17}[0-9Xx]$)
  * 
  +----------------------------------------------------------------+
  */
@@ -673,6 +933,8 @@ Object.prototype.Clone = function(){
   *		可以用clearTimeout(t)清除指定的
   * 4. 函数内部声明变量的时候，一定要使用var命令。如果不用的话，你实际上声明了一个全局变量！
   * 5. .prop('outerHTML') jquery 用这个来获取outerHTML
+  * 6. 监听回车onkeypress="if(event.keyCode==13||event.which==13){alert(2)}" 
+  * 10.	localhost:27017: insertDocument :: caused by :: 11000 E11000 duplicate key error index: eweiwei.sys_fields.$uni_name dup key: { : "custom_3" } 数据库插入错误，+ this->ajaxReturn 可能ajaxFrom引起页面找不到的问题
   +---------------------------------------------------------------+
  */
 
@@ -693,14 +955,21 @@ Object.prototype.Clone = function(){
 	12. 设置打印区域-------------------------------------------------------------------- 423
 	13. 表格导出excel------------------------------------------------------------------- 443
 	14. 闭包函数（待整理）-------------------------------------------------------------- 661
-	15. 子窗口操作父窗口---------------------------------------------------------------- 498	
+	15. 子窗口操作父窗口/iframe 内容的获取---------------------------------------------- 498	
+	16. js重定向------------------------------------------------------------------------ 514
+	17. 手机版的菜单，左侧pull出(对象化写法参考)---------------------------------------- 529
+	18. 动态绑定------------------------------------------------------------------------ 563
+	19. 通用型的数据 修改表单----------------------------------------------------------- 596
+	20. clone对象----------------------------------------------------------------------- 622
+	21. host,域名----------------------------------------------------------------------- 648
+	22. 为 未来 绑定-------------------------------------------------------------------- 659
+	23. 确认提示 confirm---------------------------------------------------------------- 673
+	24. 获取计算后的样式----------------------------------------------------------------
+	25. 载入html5本地数据（未完善）----------------------------------------------------- 696
+	26. 写入html5数据（未完善）--------------------------------------------------------- 760
+	27. 全选按钮------------------------------------------------------------------------ 866
+	28. 同源深入iframe------------------------------------------------------------------ 866
 	
-
-	11. -------------------------------------------------------------------------------- 371
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
-	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126
 	4.  无限分类------------------------------------------------------------------------ 126

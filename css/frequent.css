@@ -25,4 +25,5 @@ input {line-height:normal;line-height:43px\9;}
 <meta http-equiv="X-UA-Compatible" content="IE=7" /> 
 //background简写	background:transparent none/url() repeat scroll 0% 0%
 
-
+// 文字折行问题
+.break-word { word-wrap: break-word; break-word: break-all; }

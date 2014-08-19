@@ -275,6 +275,8 @@ function frequent_unicode_decode($code){
   +---------------------------------------------------------------+
  * 8. 自动生成略缩图
  * frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder)
+ * $O_function($thumb_image,'uploads/file/xxx.jpg');注意前面没有路径符号/
+ * 支持透明图片
   +---------------------------------------------------------------+
  * @param string  $url
  * @param integer $width
@@ -282,148 +284,85 @@ function frequent_unicode_decode($code){
  * @param boolen  $autoCrop 
  * @param string  $url
  * @param string  $folder
+ * getimagesize('http://'.$_SERVER['HTTP_HOST'].$url);曾经引起错误
+ * 使用 getimagesize($url)
   +---------------------------------------------------------------+
   | @return string $thumb
   +---------------------------------------------------------------+
  */
-function frequent_thumb($url,$width=100,$height=100,$folder='',$autoCrop=0,$nopic='nopic.jpg'){
-	$allowType = array(1=>'gif',2=>'jpeg',3=>'png');
+function frequent_thumb($url, $width=100, $height=100, $autoCrop=0, $nopic='/Public/nopic.png', $folder=''){
+	
 	if(empty($url)) return $nopic;
-	list($full_width,$full_height,$type,$attr)=getimagesize($url);
-	if (!$allowType[$type]){
-	       	return false;
+		//未来考虑也把远程图片下载到服务器上
+	if(strstr($url, '://')) return $url;	
+		// 检查略缩文件是否存在；如果存在，直接返回 
+	$pathinfo = pathinfo($url);
+	$thumb = $folder ? $folder.'/'.$pathinfo['filename'].'_'.$width.'_'.$height.'_'.'thumb.'.$pathinfo['extension']
+		: $pathinfo['dirname'].'/'.$pathinfo['filename'].'_'.$width.'_'.$height.'_'.'thumb.'.$pathinfo['extension'];
+
+	$thumb = preg_replace('/^\//', '', $thumb);
+	if(is_file($thumb))	{
+		return '/'.$thumb;
+	}	
+	$url = preg_replace('/^\//', '', $url);
+	
+	
+	list($full_width, $full_height, $type, $attr) = getimagesize($url);
+	$allowType = array(1=>'gif',2=>'jpeg',3=>'png');
+		//索引转文字
+	if ( $allowType[$type] ){
+		$type = $allowType[$type];
 	}else{
-		$type = $allowType[$type];//索引转文字
+		return '/'.$url;
 	}
-	if ($full_width>$width || $full_height>$height){
-		$pathinfo = pathinfo($url);
-		$thumb = $folder.'thumb_'.$width.'_'.$height.'_'.$pathinfo['basename'];//取得原图的文件类型
-		if(is_file($thumb)){
-			return $thumb;
-		}
-	}else{
-		return $url;
-	}
-	$dst_x = $dst_y = 0;$dst_w = $width;$dst_h = $height;
-	if($autoCrop==0){
+	
+		//如果宽高都小于压缩尺寸，不处理
+	if ( $full_width<$width && $full_height<$height )  	return $url;
+	
+	
+	if($autoCrop){
 		if($full_width/$width > $full_height/$height){
 			$full_width =$width * ($full_height/$height);
 		}else{
 			$full_height=$height * ($full_width/$width);
 		}
-	}elseif($autoCrop==1){
-		$scale = min($width/$full_width,$height/$full_height);
-		$dst_w = (int)($full_width * $scale);
-		$dst_h = (int)($full_height * $scale);
 	}else{
-		if($full_width/$width > $full_height/$height){
-			$scale = $width/$full_width;
-			$dst_h = (int)($full_height * $scale);
-			$dst_y = ($height-$dst_h)/2;
+		$scale = min($width/$full_width,$height/$full_height);
+		if($scale>=1){
+			$width=$full_width;
+			$height=$full_height;
 		}else{
-			$scale = $height/$full_height;
-			$dst_w = (int)($full_width * $scale);
-			$dst_x = ($width-$dst_w)/2;
-		}	
+			$width = (int)($full_width * $scale);
+			$height= (int)($full_height * $scale);
+		}
 	}
 	$I_function = 'imagecreatefrom'.$type;
 	$O_function = 'image'.$type;
+	
 	$full_image = $I_function($url);
-	if($type != 'gif' && function_exists('imagecreatetruecolor')){
-		$thumb_image = imagecreatetruecolor($width, $height);
-	}else{
-		$thumb_image = imagecreate($width, $height);
-	}
-	imagefill($thumb_image, 0, 0, imagecolorallocate($thumb_image, 255, 255, 255));
+	imagesavealpha($full_image, true); //保留alpha通道；可用header('Content-Type: image/png');输出查看不同
+
+	$thumb_image = imagecreatetruecolor($width, $height);
+	imagealphablending($thumb_image, false);	//不合并颜色
+	imagesavealpha($thumb_image, true);		//保留通道
+	
 	if(function_exists('imagecopyresampled')){
-		imagecopyresampled($thumb_image, $full_image, $dst_x,$dst_y, 0,0, $dst_w,$dst_h, $full_width,$full_height);
+		imagecopyresampled($thumb_image, $full_image, 0,0, 0,0, $width, $height, $full_width, $full_height);
 	}else{
-		imagecopyresized($thumb_image, $full_image, $dst_x,$dst_y, 0,0,$dst_w,$dst_h, $full_width,$full_height);
+		imagecopyresized($thumb_image, $full_image, 0,0, 0,0, $width, $height, $full_width, $full_height);
 	}
 	if($type=='gif' || $type=='png') {
 		$background_color  =  imagecolorallocate($thumb_image,  255, 255, 255);  //  指派一个白色
 		imagecolortransparent($thumb_image, $background_color);  //  设置为透明色，若注释掉该行则输出绿色的图
 	}
+	
+	//$O_function($thumb_image,'uploads/file/xxx.jpg');
 	$O_function($thumb_image, $thumb);
 	imagedestroy($thumb_image);  //图片流一般比较大，建议随手删除
 	imagedestroy($full_image);
-	return $thumb;
+	
+	return '/'.$thumb;
 }
-//function frequent_thumb($url,$width,$height,$autoCrop=0,$nopic,$folder){
-//	$allowType = array(1=>'gif',2=>'jpeg',3=>'png');
-//		//这里的索引需要和$type的索引一致。
-//	if(empty($url)) return $nopic;
-//	list($full_width,$full_height,$type,$attr)=getimagesize($url);
-//	if (!$allowType[$type]){
-//	       	return false;
-//	}else{
-//		$type = $allowType[$type];//索引转文字
-//	}
-//	 //list($width, $height, $type, $attr) = getimagesize("img/flag.jpg");
-//	 // getimagesize()返回一个具有四个单元的数组。索引 0 包含图像宽度的像素值，索引 1 包含图像高度的像素值。索引 2 是图像类型的标记：1 = GIF，2 = JPG，3 = PNG，4 = SWF，5 = PSD，6 = BMP，7 = TIFF(intel byte order)，8 = TIFF(motorola byte order)，9 = JPC，10 = JP2，11 = JPX，12 = JB2，13 = SWC，14 = IFF，15 = WBMP，16 = XBM。这些标记与 PHP 4.3.0 新加的 IMAGETYPE 常量对应。索引 3 是文本字符串，内容为“height="yyy" width="xxx"”，可直接用于 IMG 标记。
-//	 // list()函数用数组中的元素为一组变量赋值。
-//	if ($full_width>$width && $full_height>$height){
-//		if(!$folder) $folder='Public/thumb/';
-//	/* 略缩图的位置和原图同一文件夹	
-//		if(!$folder) {
-//			$pathinfo = pathinfo($url);
-//			//pathinfo('/home/ramki.pdf');
-//			//Array([dirname] => /home/ramki	[basename] => ramki.pdf		[extension] => pdf	[filename] => ramki)
-//			$folder= $pathinfo['dirname'];
-//		}
-//	 */
-//		$pathinfo = pathinfo($url);
-//		$thumb = $folder.'thumb_'.$width.'_'.$height.'_'.$pathinfo['basename'];//取得原图的文件类型
-//		if(is_file($thumb)){
-//			return $thumb;
-//		}
-//	}else{
-//		return $url;
-//	}
-//	if($autoCrop){
-//		if($full_width/$width > $full_height/$height){
-//			$full_width =$width * ($full_height/$height);
-//		}else{
-//			$full_height=$height * ($full_width/$width);
-//		}
-//	}else{
-//		$scale = min($width/$full_width,$height/$full_height);
-//		if($scale>=1){
-//			$width=$full_width;
-//			$height=$full_height;
-//		}else{
-//			$width = (int)($full_width * $scale);
-//			$height= (int)($full_height * $scale);
-//		}
-//	}
-//
-//	$I_function = 'imagecreatefrom'.$type;
-//	$O_function = 'image'.$type;
-//	$full_image = $I_function($url);
-//	if($type != 'gif' && function_exists('imagecreatetruecolor')){
-//		//优先选择imagecreatetruecolor
-//		$thumb_image = imagecreatetruecolor($width, $height);
-//	}else{
-//		$thumb_image = imagecreate($width, $height);
-//	}
-//	if(function_exists('imagecopyresampled')){
-//		//优先选择imagecopyresampled
-//		//bool imagecopyresampled ( resource $dst_image , resource $src_image , int $dst_x , int $dst_y , int $src_x , int $src_y , int $dst_w , int $dst_h , int $src_w , int $src_h )
-//		imagecopyresampled($thumb_image, $full_image, 0,0, 0,0, $width,$height, $full_width,$full_height);
-//	}else{
-//		imagecopyresized($thumb_image, $full_image, 0,0, 0,0,$width,$height, $full_width,$full_height);
-//	}
-//	if($type=='gif' || $type=='png') {
-//		$background_color  =  imagecolorallocate($thumb_image,  255, 255, 255);  //  指派一个白色
-//		imagecolortransparent($thumb_image, $background_color);  //  设置为透明色，若注释掉该行则输出绿色的图
-//	}
-//	$O_function($thumb_image, $thumb);
-//	imagedestroy($thumb_image);  //图片流一般比较大，建议随手删除
-//	imagedestroy($full_image);
-//	
-//	return $thumb;
-//}
-
 /**
   +---------------------------------------------------------------+
  * 9. 仿javaScript alert()
@@ -1464,6 +1403,29 @@ function frequent_fsockopen($host, $port, $page, $data){
 	}
 }
 
+/**
+  +---------------------------------------------------------------+
+ * 34. 验证邮箱格式
+ * frequent_isEmail()
+  +---------------------------------------------------------------+	
+ */
+function frequent_isEmail($email) {
+	return preg_match("/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/", $email);
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 35. 判断操作系统
+ * frequent_isLinux()
+ * [linux = :	windows = ;]
+  +---------------------------------------------------------------+	
+ */
+function frequent_isLinux(){
+	return PATH_SEPARATOR==':'
+}
+
+
+
 
 /**
  * 随着代码的修改，页面会出错
@@ -1529,6 +1491,7 @@ function frequent_fsockopen($host, $port, $page, $data){
  * 	5.将 URL 替换为超连接	$text = ereg_replace("[[:alpha:]]+://[^<>[:space:]]+[[:alnum:]/]","<a href=\"\\0\">\\0</a>", $text);
  * 	6.同时取出空格 换行		preg_replace('/((\s)*(\n)+(\s)*)/i', '', strip_tags( $_POST['content'] ));
  * 	7.匹配最后文件夹		$str = dirname(__FILE__);	preg_match ('/\w*$/', $str, $match);
+ * 	8.邮箱验证				preg_match("/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/", $email);
  *
  +----------------------------------------------------------------+
  */
@@ -1564,6 +1527,13 @@ function frequent_fsockopen($host, $port, $page, $data){
   *8.	301重定向
 		Header("HTTP/1.1 301 Moved Permanently");
 		Header("Location: http://www.baidu.com");
+  *9.	thinkPHP::include标签
+	  在ThinkPHP\Library\Think\Template.class.php有关于include如何工作的代码
+	  支持路径使用变量
+	  <include file="$modal" />
+	  ./eweiwei/home/view/modal_1.html 或 modal/1
+  *10.	localhost:27017: insertDocument :: caused by :: 11000 E11000 duplicate key error index: eweiwei.sys_fields.$uni_name dup key: { : "custom_3" } 数据库插入错误，+ this->ajaxReturn 可能ajaxFrom引起页面找不到的问题
+  *11. '_id'=>0 mongodb取消 object id
   +---------------------------------------------------------------+
 
  */
