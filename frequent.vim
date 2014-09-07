@@ -47,3 +47,28 @@ let i=0 | g/toPlaced/s//\=i/ |let i=i+1
 
 "12 <list mode>
 	:set list	 :set nolist "可以清楚的看到以“$”表示的换行符和以“^I”表示的制表符
+
+"13 编码查看设置问题
+	:set fileencoding(等价于fenc)	"查看当前文件编码
+	:set fenc=utf-8	:w 				"设置编码 然后:w就把文件存成utf-8
+	:set fileencodings(等价于fencs)=utf-8,gb2312,gbk,gb18030,big5	
+	:set enc=utf-8
+	"是用来在打开文件的时候进行解码的猜测列表。文件编码没有百分百正确的判断方法，所以vim只能猜测文件编码。
+	"enc，其作用是显示, 不管最后的文件是什么编码的，vim都会将其转换为当前系统编码来进行处理，这样才能在当前系统里面正确地显示出来。
+	"在windows下面，enc默认是cp936，这也就是中文windows的默认编码。
+	"在 linux下，随着你的系统locale可能设为zh_CN.gb18030或者zh_CN.utf-8，你的enc要对应的设为gb18030或者 utf-8(或者gbk之类的)。
+	"
+"14 
+:shell 可以在不关闭vi的情况下切换到shell命令行
+:exit 从shell回到vi
+9. 多标签
+直接在编辑的时候输入：
+vim -p 要编辑的文件名
+如vim -p * 就是编辑当前目录的所有文件
+多个标签间进行切换时向右切换gt，向左切换用gT
+在编辑的时候想增加一个标签就可以:tabnew filename
+:tabc       关闭当前的tab
+:tabo       关闭所有其他的tab
+:tabs       查看所有打开的tab
+:tabp      前一个
+:tabn      后一个"

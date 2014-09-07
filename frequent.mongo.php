@@ -51,3 +51,10 @@ $c->update($criteria, array('$unset'=>array('attr'=>array())));
  * 2. 数据库 集合列表
  */
 $collections = $m->selectDB("eweiwei")->getCollectionNames();
+
+/**
+ * 3. 修改数组的一个 值为数值的值
+ */
+$where = array('gh_id'=>$_SESSION['user']['gh_id'], 'address.id'=>$_POST['id']);
+$address=array('$set'=>array('address.$'=>$_POST));
+$addr = $this->db_mongo->users->findOne($query, array('address.contact'=>1, '_id'=>0));

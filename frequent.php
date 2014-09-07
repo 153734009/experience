@@ -58,6 +58,7 @@ function frequent_is_workday ($theTime,$mode=0,$holiday){
 	return $return;
 }
 
+
 /**
   +---------------------------------------------------------------+
  * 3. 计算结束时间
@@ -812,6 +813,10 @@ function frequent_simple_json_parser($json){
  |	注意，在某些系统上 iconv 函数可能无法以你预期的那样工作
  |	hexdec(bin2hex( $bin_unichar ));//$c 是unicode字符编码的int类型数值，如
  |	果是用二进制读取的数据，需要多一步转化
+ |
+ |注意：
+ |		5.4.0	options 参数增加常量： JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES, 和 JSON_UNESCAPED_UNICODE。
+ |		5.4之后可以使用JSON_UNESCAPED_UNICODE保存中文
  +---------------------------------------------------------------+
  */
 
@@ -1250,36 +1255,53 @@ echo dirname($url);
 $data = include('/public/mpAuth/appid.php');
 $data['today'] = 'is a good day';
 $str = "<?php".PHP_EOL."return ".var_export($data,true).';';
-file_put_contents('/public/mpAuth/appid.php',$str,true);
+
+// 好像 路径只能是相对路径 或 相对于硬盘的绝对路径
+file_put_contents('public/mpAuth/appid.php', $str, FILE_APPEND);
 
 
 /**
   +---------------------------------------------------------------+
  * 28. 数据对接
- * frequent_crumb($distance)
+ * frequent_dataButt($distance, $local)
+ * 只支持二维数组，通常mysql查询出来的的列表，mongodb的多维数组请小心使用
   +---------------------------------------------------------------+	
   | parameters	array	$distance		远端数据
-  | @return	void				数据更新
+  | parameters	array	$local			本地数据
+  | @return	void
   +---------------------------------------------------------------+	
  */
-function frequent_dataButt($distance){
-	//优化了的分组更新，原理和微信的更新线上'线下分组一样		
-	$local = M('user_group_association')->field('group_id')->where(array('uid'=>$uid))->select();
-	$local = multidimensional_2_unidimensional($old_groups,'group_id');
-	//本地有，远端没有
-	$toClose = array_diff($old_groups,$gids);
-	M('user_group_association')->where(array('uid'=>$uid,'group_id'=>array('in',$toClose)))->save(array('status'=>0));
-	//本地有，线上也有的
-	$intersect = array_intersect($gids,$old_groups); 
-			M('user_group_association')->where(array('uid'=>$uid,'group_id'=>array('in',$intersect)))->save(array('status'=>1));
-	//本地没有，线上有的，需要插入(mysql批量插入)
-	$toOpen = array_diff($gids,$intersect);
-	foreach ($toOpen as $v){
-		$dataList[] = array('uid'=>$uid,'group_id'=>$v,'status'=>1);
+function frequent_dataButt($distance, $local, $unique='id'){
+	foreach($local as $v){
+		$local_id[] = $v[$unique];
+		$local_index[$v[$unique]]=$v;
 	}
-	M('user_group_association')->addAll($dataList);
-}
+	foreach( $distance as $v ){
+		$distance_id[] = $v[$unique];
+		$distance_index[$v[$unique]]=$v;
+	}
+	$local_id = $local_id ? $local_id : array();
+	$distance_id = $distance_id ? $distance_id : array();
+	$arr['del'] = array_values( array_diff($local_id, $distance_id) );
+	$arr['add'] = array_values( array_diff($distance_id, $local_id) );
+	foreach( $arr['add'] as $v ){
+		$arr['add_detail'][] = $distance_index[$v];
+	}
+	$intersect = array_intersect($local_id, $distance_id);
+	foreach( $intersect as $v ){
+		$diff = array_diff_assoc($distance_index[$v], $local_index[$v]);
+		if($diff){
+			$arr['update'][] = $v;
+			$arr['update_data'][]=$distance_index[$v];
+		}
+	}
 
+	$arr['del'] = $arr['del'] ? $arr['del'] : array();
+	$arr['add'] = $arr['add'] ? $arr['add'] : array();
+	$arr['update'] = $arr['update'] ? $arr['update'] : array();
+	$arr['update_data'] = $arr['update_data'] ? $arr['update_data'] : array();
+	return $arr;
+}
 /**
   +---------------------------------------------------------------+
  * 29. 判断是否微信浏览器
@@ -1424,8 +1446,81 @@ function frequent_isLinux(){
 	return PATH_SEPARATOR==':'
 }
 
+/**
+ * 36. 一些端口
+ */
+$services = array('http', 'ftp', 'ssh', 'telnet', 'imap','smtp', 'nicname', 'gopher', 'finger', 'pop3', 'www');
+foreach ($services as $service) {
+    $port = getservbyname($service, 'tcp');
+    echo $service . ": " . $port . "<br />\n";
+}
 
+/**
+ * 37 判断是否润年
+ * 原文：
+ *	public boolean isLeapYear(int year){
+ *  if(year< MIN_YERA || year> MAX_YEAR){throw new Exception("判断的年份不在判断范围内！");}
+ *  if((year&3)==0){
+		return ((year%400==0) || (year%100!=0));
+	}
+	return false;
+	} 
+ */
+// 判断是否闰年，如果是，返回true，否则，返回false,
 
+function isLeapYear(int year){
+	if((year&3)==0){return ((year%400==0) || (year%100!=0));}
+	return false;
+}
+
+/**
+  +---------------------------------------------------------------+
+ * 38. 返回标准的EAN13条形码
+ * frequent_EAN13()
+	  1.如果不是数字，以0 替代;
+	  2.如果超过12位，截取12位; 
+	  3.如果不足12位以0补足12位;
+ *
+ * EAN13校验码的具体计算步骤：
+		12 位数字从左至右，分别计算奇数位以及偶数位之和
+		求奇数位之和
+		求偶数位之和，结果乘以 3
+		第 2、3 步，2 个计算结果相加
+		第 4 步的结果取个位数，用 10 减去个位数得到的数字，即是校验码
+		第 5 步个位数为 0 的话，校验码也是 0
+  +---------------------------------------------------------------+	
+ */
+function frequent_EAN13($code){
+	$code = preg_replace('/\D/', 0, $code);
+	$code = substr($code, 0, 12);
+	$code = str_pad($code, 12, '0');
+	$odd = $even = 0;
+	for($i=0; $i<12; $i++){
+		$i%2==1 ? $even+=substr($code, $i, 1)*3 : $odd+=substr($code, $i, 1);
+	}
+	$verify = ($odd+$even)%10==0 ? 10:($odd+$even)%10;
+	$code = $code . (10 - $verify);
+	return $code;
+}
+
+/**
+ * 39. 引用传值 &
+ * 这是一个例子，非常鲜明的例子。
+ * 有一个非常合适的应用场景是这样的：
+ *		我提炼了一个私有的方法 根据券模板生成具体的券，它不方便又返回值;
+ *		会在类里面被其它方法多次调用。
+ *		同时，我想把生成的 具体的券号记录起来。
+ *		使用引用传值，私有方法不必有返回值，但他能直接改变指定的变量；
+ *		这样我就能在外面记录生成的券号。
+ */
+	function copyCoupon($a, &$remark){
+		$a = 2;
+		$remark = 2;
+	}
+	$param_1 =1;$param_2 = 1;
+	copyCoupon($param_1, $param_2);
+	echo $param_1;
+	echo $param_2;
 
 /**
  * 随着代码的修改，页面会出错
@@ -1466,6 +1561,12 @@ function frequent_isLinux(){
 	29. 判断是否微信浏览器-------------------------------------------------------------- 1308
 	30. 测试运行时间-------------------------------------------------------------------- 1330
 	33. 使用session_id();启用同一session------------------------------------------------ 1330
+	34. 验证邮箱格式-------------------------------------------------------------------- 1429
+	35. 判断操作系统-------------------------------------------------------------------- 1439
+	36. 一些端口------------------------------------------------------------------------ 1449
+	37. 判断是否润年-------------------------------------------------------------------- 1458
+	38. 返回标准的EAN13条形码----------------------------------------------------------- 1477
+	39. 引用传值------------------------------------------------------------------------ 1506
 
  */
 /**
@@ -1492,6 +1593,9 @@ function frequent_isLinux(){
  * 	6.同时取出空格 换行		preg_replace('/((\s)*(\n)+(\s)*)/i', '', strip_tags( $_POST['content'] ));
  * 	7.匹配最后文件夹		$str = dirname(__FILE__);	preg_match ('/\w*$/', $str, $match);
  * 	8.邮箱验证				preg_match("/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/", $email);
+ * 	9.去除行号				$terms = preg_replace("/(\r\n|\n|\r|\t)/i", '', $terms);
+ * 	10.去除空行（多行模式）	terms = preg_replace("/\s+$/m", '', $terms);
+ *
  *
  +----------------------------------------------------------------+
  */
@@ -1516,24 +1620,30 @@ function frequent_isLinux(){
   *		$currentURL = 'http://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
   *	session_id();session_name();获取当前链接的session的ID和name
   *	_initialize	__construct()
-  *4.	ReflectionClass($class);类注释的获取
+  * 4.	ReflectionClass($class);类注释的获取
   *	ReflectionMethod($class,$func);类里某函数注释到获取
-  *5.	substr(sprintf('%o', fileperms('e.zip')), -4)	取得文件权限
+  * 5.	substr(sprintf('%o', fileperms('e.zip')), -4)	取得文件权限
   *	chmod						修改文件权限
-  *6.	set_time_limit(0);
+  * 6.	set_time_limit(0);
 
-  *7.	$HTTP_RAW_POST_DATA; ~file_get_contents("php://input");
+  * 7.	$HTTP_RAW_POST_DATA; ~file_get_contents("php://input");
 
-  *8.	301重定向
+  * 8.	301重定向
 		Header("HTTP/1.1 301 Moved Permanently");
 		Header("Location: http://www.baidu.com");
-  *9.	thinkPHP::include标签
+  * 9.	thinkPHP::include标签
 	  在ThinkPHP\Library\Think\Template.class.php有关于include如何工作的代码
 	  支持路径使用变量
 	  <include file="$modal" />
 	  ./eweiwei/home/view/modal_1.html 或 modal/1
-  *10.	localhost:27017: insertDocument :: caused by :: 11000 E11000 duplicate key error index: eweiwei.sys_fields.$uni_name dup key: { : "custom_3" } 数据库插入错误，+ this->ajaxReturn 可能ajaxFrom引起页面找不到的问题
-  *11. '_id'=>0 mongodb取消 object id
+  * 10.	localhost:27017: insertDocument :: caused by :: 11000 E11000 duplicate key error index: eweiwei.sys_fields.$uni_name dup key: { : "custom_3" } 数据库插入错误，+ this->ajaxReturn 可能ajaxFrom引起页面找不到的问题
+  * 11. '_id'=>0 mongodb取消 object id
+  * 12. Uninitialized string offset: 1185
+  *		数组key值越界 
+  *		解决方法：	1. if(isset($arr[key] ))
+  *					2. php.ini中error_reporting = E_ALL 改为error_reporting = E_ALL & ~E_NOTIC
+  *	13. preg_match不提供接收变量的时候，返回ture/1 false/0
+  *		preg_match("/MicroMessenger/i", $_SERVER["HTTP_USER_AGENT"])
   +---------------------------------------------------------------+
 
  */
