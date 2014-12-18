@@ -768,6 +768,7 @@ function frequent_get_file_info($path){
 /**
   +---------------------------------------------------------------+
  * 17 数组,json,字符 
+ * JSON_UNESCAPED_UNICODE
  +---------------------------------------------------------------+
  |	JSON(JavaScript Object Notation) 是一种轻量级的数据交换格式。
  |	其实就是字符。
@@ -1521,7 +1522,39 @@ function frequent_EAN13($code){
 	copyCoupon($param_1, $param_2);
 	echo $param_1;
 	echo $param_2;
-
+/**
+ *	40 mysql 防注入
+ */
+/*防注入*/
+if(!empty($_REQUEST)){
+   foreach ($_REQUEST as $key => $value) {
+      $_REQUEST[$key]=dowith_sql($value);//防注入
+   }
+}
+function dowith_sql($str)
+{
+   $str = str_replace("and","",$str);
+   $str = str_replace("execute","",$str);
+   $str = str_replace("update","",$str);
+   $str = str_replace("count","",$str);
+   $str = str_replace("chr","",$str);
+   $str = str_replace("mid","",$str);
+   $str = str_replace("master","",$str);
+   $str = str_replace("truncate","",$str);
+   $str = str_replace("char","",$str);
+   $str = str_replace("declare","",$str);
+   $str = str_replace("select","",$str);
+   $str = str_replace("create","",$str);
+   $str = str_replace("delete","",$str);
+   $str = str_replace("insert","",$str);
+   $str = str_replace("'","",$str);
+   $str = str_replace('"',"",$str);
+   $str = str_replace(" ","",$str);
+   $str = str_replace("or","",$str);
+   $str = str_replace("=","",$str);
+   $str = str_replace(" ","",$str);
+   return $str;
+}
 /**
  * 随着代码的修改，页面会出错
  *
